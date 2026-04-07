@@ -79,8 +79,8 @@
 #    define DRV2605L_FB_LOOPGAIN 1    /* For  Low:0, Medium:1, High:2, Very High:3 */
 #    define DRV2605L_RATED_VOLTAGE 3
 #    define DRV2605L_V_PEAK 5
-#    define DRV2605L_GREETING 8
-#    define DRV2605L_DEFAULT_MODE 8
+#    define DRV2605L_GREETING 21
+#    define DRV2605L_DEFAULT_MODE 21
 #    define NO_HAPTIC_ALPHA
 #    define NO_HAPTIC_NUMERIC
 #    define NO_HAPTIC_PUNCTUATION
