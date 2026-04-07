@@ -1,23 +1,36 @@
 #include "fleetsing.h"
 
 #ifdef POINTING_DEVICE_ENABLE
-#    define SCROLL_DIVISOR_H 50.0
-#    define SCROLL_DIVISOR_V 50.0
+#    define SCROLL_DIVISOR_H 133.0
+#    define SCROLL_DIVISOR_V 133.0
 
-float scroll_accumulated_h = 0;
-float scroll_accumulated_v = 0;
+static float scroll_accumulated_h = 0;
+static float scroll_accumulated_v = 0;
+#endif
+
+#ifdef POINTING_DEVICE_COMBINED
+static void fleetsing_reset_scroll_accumulators(void) {
+    scroll_accumulated_h = 0;
+    scroll_accumulated_v = 0;
+}
 #endif
 
 bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case SET_MS_L:
             if (record->event.pressed) {
-                fleetsing_set_scrolling_enabled(true);
+                fleetsing_set_scroll_side(FLEETSING_SCROLL_SIDE_LEFT);
+#ifdef POINTING_DEVICE_COMBINED
+                fleetsing_reset_scroll_accumulators();
+#endif
             }
             return false;
         case SET_MS_R:
             if (record->event.pressed) {
-                fleetsing_set_scrolling_enabled(false);
+                fleetsing_set_scroll_side(FLEETSING_SCROLL_SIDE_RIGHT);
+#ifdef POINTING_DEVICE_COMBINED
+                fleetsing_reset_scroll_accumulators();
+#endif
             }
             return false;
         default:
@@ -27,7 +40,7 @@ bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record) {
 
 #ifdef POINTING_DEVICE_COMBINED
 report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, report_mouse_t right_report) {
-    if (fleetsing_get_scrolling_enabled()) {
+    if (fleetsing_get_scroll_side() == FLEETSING_SCROLL_SIDE_RIGHT) {
         scroll_accumulated_h += (float)right_report.x / SCROLL_DIVISOR_H;
         scroll_accumulated_v += (float)right_report.y / SCROLL_DIVISOR_V;
 
@@ -65,12 +78,6 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 #endif
 
 void keyboard_post_init_user(void) {
-#ifdef POINTING_DEVICE_COMBINED
-    if (!is_keyboard_master()) {
-        pointing_device_set_cpi_on_side(is_keyboard_left(), PMW33XX_CPI - 1000);
-    }
-#endif
-
 #ifdef HAPTIC_ENABLE
     if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {
         haptic_set_mode(DRV2605L_DEFAULT_MODE);

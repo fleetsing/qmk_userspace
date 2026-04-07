@@ -19,13 +19,17 @@ enum custom_keycodes {
     SET_MS_R,
 };
 
+typedef enum {
+    FLEETSING_SCROLL_SIDE_LEFT = 0,
+    FLEETSING_SCROLL_SIDE_RIGHT,
+} fleetsing_scroll_side_t;
+
 /* Shared pointing state helpers used by the userspace modules. */
-void fleetsing_set_scrolling_enabled(bool enabled);
-bool fleetsing_get_scrolling_enabled(void);
-bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
-bool fleetsing_repeat_process_record(uint16_t keycode, keyrecord_t *record);
-bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
-void fleetsing_autoshift_haptic_matrix_scan(void);
+void                    fleetsing_set_scroll_side(fleetsing_scroll_side_t side);
+fleetsing_scroll_side_t fleetsing_get_scroll_side(void);
+bool                    fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
+bool                    fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
+void                    fleetsing_autoshift_haptic_matrix_scan(void);
 
 /* Layout helpers can override this if a keyboard wants different behaviour. */
 #ifndef FLEETSING_AUTO_SNIPING_LAYER

@@ -1,13 +1,13 @@
 #include "fleetsing.h"
 
-static bool fleetsing_scrolling_enabled = false;
+static fleetsing_scroll_side_t fleetsing_scroll_side = FLEETSING_SCROLL_SIDE_LEFT;
 
-void fleetsing_set_scrolling_enabled(bool enabled) {
-    fleetsing_scrolling_enabled = enabled;
+void fleetsing_set_scroll_side(fleetsing_scroll_side_t side) {
+    fleetsing_scroll_side = side;
 }
 
-bool fleetsing_get_scrolling_enabled(void) {
-    return fleetsing_scrolling_enabled;
+fleetsing_scroll_side_t fleetsing_get_scroll_side(void) {
+    return fleetsing_scroll_side;
 }
 
 bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -20,10 +20,6 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!fleetsing_pointing_process_record(keycode, record)) {
-        return false;
-    }
-
-    if (!fleetsing_repeat_process_record(keycode, record)) {
         return false;
     }
 

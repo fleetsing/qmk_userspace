@@ -9,7 +9,6 @@
 #include "fleetsing.h"
 #include "layouts/charybdis_3x5/layout_positions.h"
 #include "layouts/charybdis_3x5/combos.def"
-#include "tap_dance.def"
 
 // Mod-tap shortcuts for left-hand function layer.
 #define _SFT_F17 LSFT_T(KC_F17)
@@ -36,6 +35,7 @@
 #ifndef POINTING_DEVICE_ENABLE
 #    define DPI_MOD KC_NO
 #    define S_D_MOD KC_NO
+#    define S_D_RMOD KC_NO
 #    define SNIPING KC_NO
 #endif // !POINTING_DEVICE_ENABLE
 
@@ -53,7 +53,7 @@
  * \brief NUMBERS layout. */
 #define LAYOUT_LAYER_NUMBERS                                                                                                        \
     XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    FI_7,       FI_8,       FI_9,       XXXXXXX,    \
-    MOD_LSFT,   MOD_RALT,   _CTL_LEFT,  _GUI_RIGHT, KC_DEL,             KC_BSPC,    FI_4,       FI_5,       FI_6,       FI_0,       \
+    OSM(MOD_LSFT), OSM(MOD_RALT), _CTL_LEFT, _GUI_RIGHT, KC_DEL,        KC_BSPC,    FI_4,       FI_5,       FI_6,       FI_0,       \
     XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    FI_1,       FI_2,       FI_3,       XXXXXXX,    \
                             KC_SPC,     XXXXXXX,    _______,            QK_LLCK,    KC_ENT,     XXXXXXX
 
@@ -61,7 +61,7 @@
 * \brief Navigation layer. */
 #define LAYOUT_LAYER_NAVIGATION                                                                                                     \
     XXXXXXX,    S(KC_TAB),  KC_UP,      KC_TAB,     KC_PGUP,            KC_PGUP,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    \
-    KC_LSFT,    KC_LEFT,    KC_DOWN,    KC_RGHT,    KC_DEL,             _MEH_LEFT,  _GUI_DOWN,  _CTL_UP,    _OPT_RIGHT, MOD_LSFT,   \
+    KC_LSFT,    KC_LEFT,    KC_DOWN,    KC_RGHT,    KC_DEL,             _MEH_LEFT,  _GUI_DOWN,  _CTL_UP,    _OPT_RIGHT, OSM(MOD_LSFT), \
     XXXXXXX,    KC_END,     KC_INS,     KC_HOME,    KC_PGDN,            KC_PGDN,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,    \
                             _______,    XXXXXXX,    KC_ENT,             QK_LLCK,    KC_ENT,     XXXXXXX
 
@@ -84,7 +84,7 @@
 /**
  * \brief Mouse emulation and pointer functions. */
 #define LAYOUT_LAYER_POINTER                                                                                                        \
-    QK_BOOT,    EE_CLR,     XXXXXXX,    DPI_MOD,    S_D_MOD,            S_D_MOD,    DPI_MOD,    XXXXXXX,    EE_CLR,     QK_BOOT,    \
+    QK_BOOT,    EE_CLR,     XXXXXXX,    S_D_RMOD,   S_D_MOD,            S_D_MOD,    S_D_RMOD,   XXXXXXX,    EE_CLR,     QK_BOOT,    \
     KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    XXXXXXX,            XXXXXXX,    KC_RGUI,    KC_RCTL,    KC_RALT,    KC_RSFT,    \
     _______,    DRGSCRL,    XXXXXXX,    SET_MS_L,   XXXXXXX,            XXXXXXX,    SET_MS_R,   XXXXXXX,    DRGSCRL,    _______,    \
                             MS_BTN2,    MS_BTN1,    MS_BTN3,            MS_BTN3,    MS_BTN1,    MS_BTN2

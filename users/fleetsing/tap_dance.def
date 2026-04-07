@@ -1,9 +1,0 @@
-#pragma once
-
-enum {
-    TD_SHIFT,
-};
-
-tap_dance_action_t tap_dance_actions[] = {
-    [TD_SHIFT] = ACTION_TAP_DANCE_DOUBLE(OSM(MOD_LSFT), CW_TOGG),
-};
