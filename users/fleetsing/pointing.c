@@ -70,4 +70,10 @@ void keyboard_post_init_user(void) {
         pointing_device_set_cpi_on_side(is_keyboard_left(), PMW33XX_CPI - 1000);
     }
 #endif
+
+#ifdef HAPTIC_ENABLE
+    if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {
+        haptic_set_mode(DRV2605L_DEFAULT_MODE);
+    }
+#endif
 }

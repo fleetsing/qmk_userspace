@@ -28,7 +28,7 @@
 
 #define RGB_MATRIX_DISABLE_SHARED_KEYCODES
 
-#define LAYER_LOCK_IDLE_TIMEOUT 60000  // Turn off after 60 seconds.
+#define LAYER_LOCK_IDLE_TIMEOUT 60000 // Turn off after 60 seconds.
 #define TAPPING_TERM 300
 
 #define COMBO_TERM 35
@@ -37,7 +37,7 @@
 #define AUTO_SHIFT_TIMEOUT 300
 #define AUTO_SHIFT_REPEAT
 #define NO_AUTO_SHIFT_NUMERIC
-#define RETRO_SHIFT 500
+#define RETRO_SHIFT 700
 
 #define PERMISSIVE_HOLD
 #define CHORDAL_HOLD
@@ -66,21 +66,21 @@
 #define ONESHOT_TAP_TOGGLE 5
 #define ONESHOT_TIMEOUT 3000
 
-# ifdef OLED_ENABLE
+#ifdef OLED_ENABLE
 /* OLED configuration. */
 #    define OLED_IC OLED_IC_SH1107
 #    define OLED_DISPLAY_64X128
 #endif // OLED_ENABLE
 
-# ifdef HAPTIC_ENABLE
+#ifdef HAPTIC_ENABLE
 /* Haptic configuration. */
 #    define DRV2605L_FB_ERM_LRA 0
 #    define DRV2605L_FB_BRAKEFACTOR 3 /* For 1x:0, 2x:1, 3x:2, 4x:3, 6x:4, 8x:5, 16x:6, Disable Braking:7 */
-#    define DRV2605L_FB_LOOPGAIN 1 /* For  Low:0, Medium:1, High:2, Very High:3 */
+#    define DRV2605L_FB_LOOPGAIN 1    /* For  Low:0, Medium:1, High:2, Very High:3 */
 #    define DRV2605L_RATED_VOLTAGE 3
 #    define DRV2605L_V_PEAK 5
-#    define DRV2605L_GREETING 7
-#    define DRV2605L_DEFAULT_MODE 7
+#    define DRV2605L_GREETING 8
+#    define DRV2605L_DEFAULT_MODE 8
 #    define NO_HAPTIC_ALPHA
 #    define NO_HAPTIC_NUMERIC
 #    define NO_HAPTIC_PUNCTUATION

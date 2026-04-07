@@ -1,6 +1,22 @@
 #include "fleetsing.h"
 
-__attribute__((weak)) bool get_haptic_enabled_key(uint16_t keycode, keyrecord_t *record) {switch (keycode) {
+static uint16_t fleetsing_haptic_normalize_keycode(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case QK_MODS ... QK_MODS_MAX:
+            return QK_MODS_GET_BASIC_KEYCODE(keycode);
+        case QK_MOD_TAP ... QK_MOD_TAP_MAX:
+            return record->tap.count == 0 ? keycode : QK_MOD_TAP_GET_TAP_KEYCODE(keycode);
+        case QK_LAYER_TAP ... QK_LAYER_TAP_MAX:
+            return record->tap.count == 0 ? keycode : QK_LAYER_TAP_GET_TAP_KEYCODE(keycode);
+        default:
+            return keycode;
+    }
+}
+
+__attribute__((weak)) bool get_haptic_enabled_key(uint16_t keycode, keyrecord_t *record) {
+    keycode = fleetsing_haptic_normalize_keycode(keycode, record);
+
+    switch (keycode) {
 #ifdef NO_HAPTIC_MOD
         case QK_MOD_TAP ... QK_MOD_TAP_MAX:
         case QK_LAYER_TAP_TOGGLE ... QK_LAYER_TAP_TOGGLE_MAX:
@@ -55,5 +71,6 @@ __attribute__((weak)) bool get_haptic_enabled_key(uint16_t keycode, keyrecord_t 
 #endif
             return false;
     }
+
     return true;
 }

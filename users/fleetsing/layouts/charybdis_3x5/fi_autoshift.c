@@ -1,6 +1,22 @@
 #include "fleetsing.h"
 #include "layouts/charybdis_3x5/layout_positions.h"
 
+static struct {
+    bool        active;
+    bool        fired;
+    uint16_t    keycode;
+    uint16_t    start_time;
+    keyrecord_t record;
+} fleetsing_autoshift_haptic_state = {0};
+
+static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *record) {
+#ifdef HAPTIC_ENABLE
+    if (shifted && record->event.pressed && record->event.time == 0 && haptic_get_enable()) {
+        haptic_play();
+    }
+#endif
+}
+
 bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case S(FI_4):
@@ -38,7 +54,54 @@ bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
+static bool fleetsing_is_retro_autoshift_key(uint16_t keycode, keyrecord_t *record) {
+    return IS_RETRO(keycode) && get_custom_auto_shifted_key(keycode, record);
+}
+
+static void fleetsing_clear_autoshift_haptic_state(void) {
+    fleetsing_autoshift_haptic_state.active  = false;
+    fleetsing_autoshift_haptic_state.fired   = false;
+    fleetsing_autoshift_haptic_state.keycode = KC_NO;
+}
+
+bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record) {
+    if (fleetsing_autoshift_haptic_state.active && record->event.pressed && keycode != fleetsing_autoshift_haptic_state.keycode) {
+        fleetsing_clear_autoshift_haptic_state();
+    }
+
+    if (!fleetsing_is_retro_autoshift_key(keycode, record)) {
+        return true;
+    }
+
+    if (record->event.pressed) {
+        fleetsing_autoshift_haptic_state.active     = true;
+        fleetsing_autoshift_haptic_state.fired      = false;
+        fleetsing_autoshift_haptic_state.keycode    = keycode;
+        fleetsing_autoshift_haptic_state.start_time = timer_read();
+        fleetsing_autoshift_haptic_state.record     = *record;
+    } else if (fleetsing_autoshift_haptic_state.active && keycode == fleetsing_autoshift_haptic_state.keycode) {
+        fleetsing_clear_autoshift_haptic_state();
+    }
+
+    return true;
+}
+
+void fleetsing_autoshift_haptic_matrix_scan(void) {
+#ifdef HAPTIC_ENABLE
+    if (!fleetsing_autoshift_haptic_state.active || fleetsing_autoshift_haptic_state.fired || !haptic_get_enable()) {
+        return;
+    }
+
+    if (TIMER_DIFF_16(timer_read(), fleetsing_autoshift_haptic_state.start_time) >= get_autoshift_timeout(fleetsing_autoshift_haptic_state.keycode, &fleetsing_autoshift_haptic_state.record)) {
+        haptic_play();
+        fleetsing_autoshift_haptic_state.fired = true;
+    }
+#endif
+}
+
 void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
+    fleetsing_autoshift_resolution_haptic(shifted, record);
+
     switch (keycode) {
         case S(FI_4):
             register_code16((!shifted) ? S(FI_4) : A(FI_4));

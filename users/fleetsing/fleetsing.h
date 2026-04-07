@@ -24,6 +24,8 @@ void fleetsing_set_scrolling_enabled(bool enabled);
 bool fleetsing_get_scrolling_enabled(void);
 bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_repeat_process_record(uint16_t keycode, keyrecord_t *record);
+bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
+void fleetsing_autoshift_haptic_matrix_scan(void);
 
 /* Layout helpers can override this if a keyboard wants different behaviour. */
 #ifndef FLEETSING_AUTO_SNIPING_LAYER
