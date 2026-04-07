@@ -6,21 +6,7 @@
 
 #include QMK_KEYBOARD_H
 #include "keymap_finnish.h"
-
-enum charybdis_keymap_layers {
-    LAYER_BASE = 0,
-    LAYER_NUMBERS,
-    LAYER_NAVIGATION,
-    LAYER_FUNCTION,
-    LAYER_MEDIA,
-    LAYER_POINTER,
-    LAYER_MACRO,
-};
-
-enum custom_keycodes {
-    SET_MS_L = SAFE_RANGE,
-    SET_MS_R,
-};
+#include "fleetsing.h"
 
 // Tap Dance declarations
 enum {
@@ -32,9 +18,6 @@ tap_dance_action_t tap_dance_actions[] = {
     // Tap once for Escape, twice for Caps Lock
     [TD_SHIFT] = ACTION_TAP_DANCE_DOUBLE(OSM(MOD_LSFT), CW_TOGG),
 };
-
-// Automatically enable sniping-mode on the pointer layer.
-#define CHARYBDIS_AUTO_SNIPING_ON_LAYER LAYER_POINTER
 
 // Left-hand row 1.
 #define _L15 FI_Q
@@ -317,74 +300,6 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 void rgb_matrix_update_pwm_buffers(void);
 #endif
 
-#ifdef POINTING_DEVICE_ENABLE
-bool set_scrolling = false;
-// Modify these values to adjust the scrolling speed
-#define SCROLL_DIVISOR_H 50.0
-#define SCROLL_DIVISOR_V 50.0
-
-// Variables to store accumulated scroll values
-float scroll_accumulated_h = 0;
-float scroll_accumulated_v = 0;
-#endif
-
-void keyboard_post_init_user(void) {
-    // Customise these values to desired behaviour
-    // debug_enable=true;
-    // debug_matrix=true;
-    // debug_keyboard=true;
-    // debug_mouse=true;
-    #ifdef POINTING_DEVICE_COMBINED
-      // Hack to fix slave side being a lower sensitivity
-    if (!is_keyboard_master()) {
-        pointing_device_set_cpi_on_side(is_keyboard_left(), PMW33XX_CPI - 1000);
-    }
-//        pointing_device_set_cpi_on_side(false, PMW33XX_CPI);
-//        pointing_device_set_cpi_on_side(true, PMW33XX_CPI);
-    #endif
-}
-
-#ifdef POINTING_DEVICE_COMBINED
-report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, report_mouse_t right_report) {
-    if (set_scrolling) {
-        // Calculate and accumulate scroll values based on mouse movement and divisors
-        scroll_accumulated_h += (float)right_report.x / SCROLL_DIVISOR_H;
-        scroll_accumulated_v += (float)right_report.y / SCROLL_DIVISOR_V;
-
-        // Assign integer parts of accumulated scroll values to the mouse report
-        right_report.h = (int8_t)scroll_accumulated_h;
-        right_report.v = -(int8_t)scroll_accumulated_v;
-
-        // Update accumulated scroll values by subtracting the integer parts
-        scroll_accumulated_h -= (int8_t)scroll_accumulated_h;
-        scroll_accumulated_v -= (int8_t)scroll_accumulated_v;
-
-        // Clear the X and Y values of the mouse report
-        right_report.x = 0;
-        right_report.y = 0;
-    } else {
-        // Calculate and accumulate scroll values based on mouse movement and divisors
-        scroll_accumulated_h += (float)left_report.x / SCROLL_DIVISOR_H;
-        scroll_accumulated_v += (float)left_report.y / SCROLL_DIVISOR_V;
-
-        // Assign integer parts of accumulated scroll values to the mouse report
-        left_report.h = (int8_t)scroll_accumulated_h;
-        left_report.v = -(int8_t)scroll_accumulated_v;
-
-        // Update accumulated scroll values by subtracting the integer parts
-        scroll_accumulated_h -= (int8_t)scroll_accumulated_h;
-        scroll_accumulated_v -= (int8_t)scroll_accumulated_v;
-
-        left_report.x = 0;
-        left_report.y = 0;
-    }
-
-    // Clear the X and Y values of the mouse report
-
-    return pointing_device_combine_reports(left_report, right_report);
-}
-#endif
-
 bool remember_last_key_user(uint16_t keycode, keyrecord_t* record, uint8_t* remembered_mods) {
     if (keycode == QK_REP) { return false; }
     if (keycode == QK_AREP) { return false; }
@@ -394,6 +309,35 @@ bool remember_last_key_user(uint16_t keycode, keyrecord_t* record, uint8_t* reme
 // bool get_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
 //     return get_custom_auto_shifted_key(keycode, record);
 // }
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case SET_MS_L:
+            if (record->event.pressed) {
+                fleetsing_set_scrolling_enabled(true);
+            }
+            return false; // Skip all further processing of this key
+        case SET_MS_R:
+            if (record->event.pressed) {
+                fleetsing_set_scrolling_enabled(false);
+            }
+            return false; // Skip all further processing of this key
+        case QK_AREP:
+            if (record->tap.count) {  // On tap.
+                alt_repeat_key_invoke(&record->event);  // Alt repeat the last key.
+                return false;  // Skip default handling.
+            }
+            return true;
+        case QK_REP:
+            if (record->tap.count) {  // On tap.
+                repeat_key_invoke(&record->event);  // Repeat the last key.
+                return false;  // Skip default handling.
+            }
+            return true;
+        default:
+            return true; // Process all other keycodes normally
+    }
+}
 
 bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
     switch(keycode) {
@@ -615,140 +559,4 @@ uint16_t get_alt_repeat_key_keycode_user(uint16_t keycode, uint8_t mods) {
         case FI_HALF: return FI_SECT;  // Greater Than reverses to Less Than.
     }
     return KC_TRNS;
-}
-
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    switch (keycode) {
-        case SET_MS_L:
-            if (record->event.pressed) {
-                set_scrolling = true;
-            }
-            return false; // Skip all further processing of this key
-        case SET_MS_R:
-            if (record->event.pressed) {
-                set_scrolling = false;
-            }
-            return false; // Skip all further processing of this key
-        case QK_AREP:
-            if (record->tap.count) {  // On tap.
-                alt_repeat_key_invoke(&record->event);  // Alt repeat the last key.
-                return false;  // Skip default handling.
-            }
-            return true;
-        case QK_REP:
-            if (record->tap.count) {  // On tap.
-                repeat_key_invoke(&record->event);  // Repeat the last key.
-                return false;  // Skip default handling.
-            }
-            return true;
-        default:
-            return true; // Process all other keycodes normally
-    }
-}
-
-// rotate the OLEDs
-oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    return OLED_ROTATION_180;
-}
-
-
-#ifdef OLED_ENABLE
-bool oled_task_user(void) {
-    // Host Keyboard Layer Status
-    oled_write_P(PSTR("Layer:\n"), false);
-
-    switch (get_highest_layer(layer_state)) {
-        case LAYER_BASE:
-            oled_write_P(PSTR("BASE\n"), false);
-            break;
-        case LAYER_NUMBERS:
-            oled_write_P(PSTR("NUMBER\n"), false);
-            break;
-        case LAYER_NAVIGATION:
-            oled_write_P(PSTR("NAVIGATION\n"), false);
-            break;
-        case LAYER_POINTER:
-            oled_write_P(PSTR("POINTER\n"), false);
-            break;
-        case LAYER_MACRO:
-            oled_write_P(PSTR("MACRO\n"), false);
-            break;
-        case LAYER_MEDIA:
-            oled_write_P(PSTR("MEDIA\n"), false);
-            break;
-        case LAYER_FUNCTION:
-            oled_write_P(PSTR("FUNCTION\n"), false);
-            break;
-        default:
-            // Or use the write_ln shortcut over adding '\n' to the end of your string
-            oled_write_ln_P(PSTR("Undefined"), false);
-    }
-
-    // Host Keyboard LED Status
-    led_t led_state = host_keyboard_led_state();
-    oled_write_P(led_state.num_lock ? PSTR("NUM ") : PSTR("    "), false);
-    oled_write_P(led_state.caps_lock ? PSTR("CAP ") : PSTR("    "), false);
-    oled_write_P(led_state.scroll_lock ? PSTR("SCR ") : PSTR("    "), false);
-    
-    return false;
-}
-#endif
-
-__attribute__((weak)) bool get_haptic_enabled_key(uint16_t keycode, keyrecord_t *record) {
-    switch (keycode) {
-#ifdef NO_HAPTIC_MOD
-        case QK_MOD_TAP ... QK_MOD_TAP_MAX:
-        case QK_LAYER_TAP_TOGGLE ... QK_LAYER_TAP_TOGGLE_MAX:
-        case QK_LAYER_TAP ... QK_LAYER_TAP_MAX:
-        case KC_LEFT_CTRL ... KC_RIGHT_GUI:
-        case QK_MOMENTARY ... QK_MOMENTARY_MAX:
-        case QK_LAYER_MOD ... QK_LAYER_MOD_MAX:
-#endif
-#ifdef NO_HAPTIC_ALPHA
-        case KC_A ... KC_Z:
-#endif
-#ifdef NO_HAPTIC_PUNCTUATION
-        case KC_ENTER:
-        case KC_ESCAPE:
-        case KC_BACKSPACE:
-        case KC_SPACE:
-        case KC_MINUS:
-        case KC_EQUAL:
-        case KC_LEFT_BRACKET:
-        case KC_RIGHT_BRACKET:
-        case KC_BACKSLASH:
-        case KC_NONUS_HASH:
-        case KC_SEMICOLON:
-        case KC_QUOTE:
-        case KC_GRAVE:
-        case KC_COMMA:
-        case KC_SLASH:
-        case KC_DOT:
-        case KC_NONUS_BACKSLASH:
-#endif
-#ifdef NO_HAPTIC_LOCKKEYS
-        case KC_CAPS_LOCK:
-        case KC_SCROLL_LOCK:
-        case KC_NUM_LOCK:
-#endif
-#ifdef NO_HAPTIC_NAV
-        case KC_PRINT_SCREEN:
-        case KC_PAUSE:
-        case KC_INSERT:
-        case KC_DELETE:
-        case KC_PAGE_DOWN:
-        case KC_PAGE_UP:
-        case KC_LEFT:
-        case KC_UP:
-        case KC_RIGHT:
-        case KC_DOWN:
-        case KC_END:
-        case KC_HOME:
-#endif
-#ifdef NO_HAPTIC_NUMERIC
-        case KC_1 ... KC_0:
-#endif
-            return false;
-    }
-    return true;
 }

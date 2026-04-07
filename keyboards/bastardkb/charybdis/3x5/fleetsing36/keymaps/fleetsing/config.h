@@ -28,11 +28,6 @@
 
 #define RGB_MATRIX_DISABLE_SHARED_KEYCODES
 
-/**
-# define I2C1_SDA_PIN GP2
-# define I2C1_SCL_PIN GP3
-*/
-
 #define LAYER_LOCK_IDLE_TIMEOUT 60000  // Turn off after 60 seconds.
 #define TAPPING_TERM 300
 
@@ -57,8 +52,11 @@
 #define SPLIT_OLED_ENABLE
 #define SPLIT_HAPTIC_ENABLE
 #define SPLIT_ACTIVITY_ENABLE
+#define SPLIT_LED_STATE_ENABLE
+#define CHARYBDIS_CONFIG_SYNC
 
 /* Pointing device settings. */
+#define PMW33XX_CPI 1600
 #undef POINTING_DEVICE_RIGHT
 #define POINTING_DEVICE_COMBINED
 
