@@ -19,58 +19,6 @@ tap_dance_action_t tap_dance_actions[] = {
     [TD_SHIFT] = ACTION_TAP_DANCE_DOUBLE(OSM(MOD_LSFT), CW_TOGG),
 };
 
-// Left-hand row 1.
-#define _L15 FI_Q
-#define _L14 FI_W
-#define _L13 FI_E
-#define _L12 FI_R
-#define _L11 FI_T
-
-// Left-hand row 2.
-#define _L25 LSFT_T(FI_A)
-#define _L24 RALT_T(FI_S)
-#define _L23 LCTL_T(FI_D)
-#define _L22 LGUI_T(FI_F)
-#define _L21 FI_G
-
-// Left-hand row 3.
-#define _L35 LT(LAYER_POINTER, FI_Z)
-#define _L34 FI_X
-#define _L33 MEH_T(FI_C)
-#define _L32 HYPR_T(FI_V)
-#define _L31 FI_B
-
-// Left-hand thumb cluster.
-#define _L43 LT(LAYER_NUMBERS, KC_SPC)
-#define _L42 MS_BTN1
-#define _L41 LT(LAYER_FUNCTION, KC_ESC)
-
-// Right-hand row 1.
-#define _R11 FI_Y
-#define _R12 FI_U
-#define _R13 FI_I
-#define _R14 FI_O
-#define _R15 FI_P
-
-// Right-hand row 2.
-#define _R21 FI_H
-#define _R22 RGUI_T(FI_J)
-#define _R23 RCTL_T(FI_K)
-#define _R24 RALT_T(FI_L)
-#define _R25 RSFT_T(FI_ODIA)
-
-// Right-hand row 3.
-#define _R31 FI_N
-#define _R32 HYPR_T(FI_M)
-#define _R33 MEH_T(FI_COMM)
-#define _R34 FI_DOT
-#define _R35 LT(LAYER_POINTER, FI_ADIA)
-
-// Right-hand thumb cluster.
-#define _R41 LT(LAYER_MEDIA, KC_ESC)
-#define _R42 MS_BTN1
-#define _R43 LT(LAYER_NAVIGATION, KC_ENT)
-
 // Mod-tap shortcuts for left-hand function layer.
 #define _SFT_F17 LSFT_T(KC_F17)
 #define _OPT_F18 RALT_T(KC_F18)
@@ -85,7 +33,7 @@ tap_dance_action_t tap_dance_actions[] = {
 
 // Mod-tap shortcuts for numbers layer.
 #define _CTL_LEFT RCTL_T(KC_LEFT)
-# define _GUI_RIGHT RGUI_T(KC_RIGHT)
+#define _GUI_RIGHT RGUI_T(KC_RIGHT)
 
 // Mod-tap shortcuts for navigation layer.
 #define _MEH_LEFT MEH_T(KC_LEFT)
@@ -300,9 +248,13 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 void rgb_matrix_update_pwm_buffers(void);
 #endif
 
-bool remember_last_key_user(uint16_t keycode, keyrecord_t* record, uint8_t* remembered_mods) {
-    if (keycode == QK_REP) { return false; }
-    if (keycode == QK_AREP) { return false; }
+bool remember_last_key_user(uint16_t keycode, keyrecord_t *record, uint8_t *remembered_mods) {
+    if (keycode == QK_REP) {
+        return false;
+    }
+    if (keycode == QK_AREP) {
+        return false;
+    }
     return true;
 }
 
@@ -323,240 +275,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false; // Skip all further processing of this key
         case QK_AREP:
-            if (record->tap.count) {  // On tap.
-                alt_repeat_key_invoke(&record->event);  // Alt repeat the last key.
-                return false;  // Skip default handling.
+            if (record->tap.count) {                   // On tap.
+                alt_repeat_key_invoke(&record->event); // Alt repeat the last key.
+                return false;                          // Skip default handling.
             }
             return true;
         case QK_REP:
-            if (record->tap.count) {  // On tap.
-                repeat_key_invoke(&record->event);  // Repeat the last key.
-                return false;  // Skip default handling.
+            if (record->tap.count) {               // On tap.
+                repeat_key_invoke(&record->event); // Repeat the last key.
+                return false;                      // Skip default handling.
             }
             return true;
         default:
             return true; // Process all other keycodes normally
     }
-}
-
-bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
-    switch(keycode) {
-        case S(FI_4):
-            return true;
-        case A(FI_2):
-            return true;
-        case FI_DOT:
-            return true;
-        case FI_COMM:
-            return true;
-        case FI_PLUS:
-            return true;
-        case FI_MINS:
-            return true;
-        case S(FI_7):
-            return true;
-        case S(FI_QUOT):
-            return true;
-        case S(FI_DOT):
-            return true;
-        case A(FI_DIAE):
-            return true;
-        case S(FI_8):
-            return true;
-        case A(FI_8):
-            return true;
-        case S(FI_9):
-            return true;
-        case A(FI_9):
-            return true;
-        case FI_QUOT:
-            return true;
-        case S(FI_6):
-            return true;
-        case _L25:
-            return true;
-        case _L24:
-            return true;
-        case _L23:
-            return true;
-        case _L22:
-            return true;
-        case _L32:
-            return true;
-        case _L33:
-            return true;
-        case _R35:
-            return true;
-        case _R33:
-            return true;
-        case _R32:
-            return true;
-        case _R22:
-            return true;
-        case _R23:
-            return true;
-        case _R24:
-            return true;
-        case _R25:
-            return true;
-        default:
-            return false;
-    }
-}
-
-void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
-    switch(keycode) {
-        case S(FI_4):
-            register_code16((!shifted) ? S(FI_4) : A(FI_4));
-            break;
-        case A(FI_2):
-            register_code16((!shifted) ? A(FI_2) : S(FI_DIAE));
-            break;
-        case FI_DOT:
-            register_code16((!shifted) ? FI_DOT : S(FI_PLUS));
-            break;
-        case FI_COMM:
-            register_code16((!shifted) ? FI_COMM : S(FI_1));
-            break;
-        case FI_PLUS:
-            register_code16((!shifted) ? FI_PLUS : S(FI_0));
-            break;
-        case FI_MINS:
-            register_code16((!shifted) ? FI_MINS : S(FI_MINS));
-            break;
-        case S(FI_7):
-            register_code16((!shifted) ? S(FI_7) : S(A(FI_7)));
-            break;
-        case S(FI_QUOT):
-            register_code16((!shifted) ? S(FI_QUOT) : S(FI_3));
-            break;
-        case S(FI_DOT):
-            register_code16((!shifted) ? S(FI_DOT) : S(FI_COMM));
-            break;
-        case A(FI_DIAE):
-            register_code16((!shifted) ? A(FI_DIAE) : A(FI_7));
-            break;
-        case S(FI_8):
-            register_code16((!shifted) ? S(FI_8) : S(A(FI_8)));
-            break;
-        case A(FI_8):
-            register_code16((!shifted) ? A(FI_8) : FI_SECT);
-            break;
-        case S(FI_9):
-            register_code16((!shifted) ? S(FI_9) : S(A(FI_9)));
-            break;
-        case A(FI_9):
-            register_code16((!shifted) ? A(FI_9) : S(FI_SECT));
-            break;
-        case FI_QUOT:
-            register_code16((!shifted) ? FI_QUOT : S(FI_2));
-            break;
-        case S(FI_6):
-            register_code16((!shifted) ? S(FI_6) : S(FI_5));
-            break;
-        default:
-            if (shifted) {
-                add_weak_mods(MOD_BIT(KC_LSFT));
-            }
-            // & 0xFF gets the Tap key for Tap Holds, required when using Retro Shift
-            register_code16((IS_RETRO(keycode)) ? keycode & 0xFF : keycode);
-    }
-}
-
-void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
-    switch(keycode) {
-        case S(FI_4):
-            unregister_code16((!shifted) ? S(FI_4) : A(FI_4));
-            if (shifted) { set_last_keycode(A(FI_4)); }
-            break;
-        case A(FI_2):
-            unregister_code16((!shifted) ? A(FI_2) : S(FI_DIAE));
-            if (shifted) { set_last_keycode(S(FI_DIAE)); }
-            break;
-        case FI_DOT:
-            unregister_code16((!shifted) ? FI_DOT : S(FI_PLUS));
-            if (shifted) { set_last_keycode(S(FI_PLUS)); }
-            break;
-        case FI_COMM:
-            unregister_code16((!shifted) ? FI_COMM : S(FI_1));
-            if (shifted) { set_last_keycode(S(FI_1)); }
-            break;
-        case FI_PLUS:
-            unregister_code16((!shifted) ? FI_PLUS : S(FI_0));
-            if (shifted) { set_last_keycode(S(FI_0)); }
-            break;
-        case FI_MINS:
-            unregister_code16((!shifted) ? FI_MINS : S(FI_MINS));
-            if (shifted) { set_last_keycode(S(FI_MINS)); }
-            break;
-        case S(FI_7):
-            unregister_code16((!shifted) ? S(FI_7) : S(A(FI_7)));
-            if (shifted) { set_last_keycode(S(A(FI_7))); }
-            break;
-        case S(FI_QUOT):
-            unregister_code16((!shifted) ? S(FI_QUOT) : S(FI_3));
-            if (shifted) { set_last_keycode(S(FI_3)); }
-            break;
-        case S(FI_DOT):
-            unregister_code16((!shifted) ? S(FI_DOT) : S(FI_COMM));
-            if (shifted) { set_last_keycode(S(FI_COMM)); }
-            break;
-        case A(FI_DIAE):
-            unregister_code16((!shifted) ? A(FI_DIAE) : A(FI_7));
-            if (shifted) { set_last_keycode(A(FI_7)); }
-            break;
-        case S(FI_8):
-            unregister_code16((!shifted) ? S(FI_8) : S(A(FI_8)));
-            if (shifted) { set_last_keycode(S(A(FI_8))); }
-            break;
-        case A(FI_8):
-            unregister_code16((!shifted) ? A(FI_8) : FI_SECT);
-            if (shifted) { set_last_keycode(FI_SECT); }
-            break;
-        case S(FI_9):
-            unregister_code16((!shifted) ? S(FI_9) : S(A(FI_9)));
-            if (shifted) { set_last_keycode(S(A(FI_9))); }
-            break;
-        case A(FI_9):
-            unregister_code16((!shifted) ? A(FI_9) : S(FI_SECT));
-            if (shifted) { set_last_keycode(S(FI_SECT)); }
-            break;
-        case FI_QUOT:
-            unregister_code16((!shifted) ? FI_QUOT : S(FI_2));
-            if (shifted) { set_last_keycode(S(FI_2)); }
-            break;
-        case S(FI_6):
-            unregister_code16((!shifted) ? S(FI_6) : S(FI_5));
-            if (shifted) { set_last_keycode(S(FI_5)); }
-            break;
-        default:
-            // & 0xFF gets the Tap key for Tap Holds, required when using Retro Shift
-            // The IS_RETRO check isn't really necessary here, always using
-            // keycode & 0xFF would be fine.
-            unregister_code16((IS_RETRO(keycode)) ? keycode & 0xFF : keycode);
-    }
-    // Remember that the key was autoshifted.
-}
-
-uint16_t get_alt_repeat_key_keycode_user(uint16_t keycode, uint8_t mods) {
-    switch (keycode) {
-        case KC_TAB: return S(KC_TAB);  // Tab reverses to Shift + Tab.
-        case S(KC_TAB): return KC_TAB;  // Shift + Tab reverses to Tab.
-        
-        case G(FI_Y): return G(FI_Z);  // GUI + Y reverses to GUI + Z.
-        case G(FI_Z): return G(FI_Y);  // GUI + Z reverses to GUI + Y.
-        case G(FI_C): return G(FI_V);  // GUI + C reverses to GUI + V.
-
-        case C(FI_Y): return C(FI_Z);  // Ctrl + Y reverses to Ctrl + Z.
-        case C(FI_Z): return C(FI_Y);  // Ctrl + Z reverses to Ctrl + Y.
-        case C(FI_C): return C(FI_V);  // Ctrl + C reverses to Ctrl + V.
-    
-        case FI_LPRN: return FI_RPRN;  // Left Parenthesis reverses to Right Parenthesis.
-        case A(FI_8): return A(FI_9);  // Left Brakcet reverses to Right Bracket.
-        case A(FI_LPRN): return A(FI_RPRN);  // Left Brace reverses to Right Brace.
-
-        case FI_SECT: return FI_HALF;  // Less Than reverses to Greater Than.
-        case FI_HALF: return FI_SECT;  // Greater Than reverses to Less Than.
-    }
-    return KC_TRNS;
 }

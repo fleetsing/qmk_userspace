@@ -19,6 +19,8 @@ enum custom_keycodes {
     SET_MS_R,
 };
 
+#include "layout_positions.h"
+
 /* Shared by pointing.c */
 /* Automatically enable sniping-mode on the pointer layer */
 #define CHARYBDIS_AUTO_SNIPING_ON_LAYER LAYER_POINTER
