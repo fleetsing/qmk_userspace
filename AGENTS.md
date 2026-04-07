@@ -10,7 +10,7 @@ Treat `../docs/qmk-context.yaml` as authoritative for current paths, active targ
 
 ## Active Source Locations
 
-For the exact current keymap path, shared user file inventory, build targets, generated-artifact policy, and gotchas, read `../docs/qmk-context.yaml`.
+For the exact current keymap path, shared user file inventory, layout-specific userspace modules, build targets, generated-artifact policy, and gotchas, read `../docs/qmk-context.yaml`.
 
 ## When edits belong here
 
@@ -22,6 +22,13 @@ Use this repository for:
 - OLED, pointing, haptics, and other personal feature logic
 - keymap-level `config.h` and `rules.mk`
 - reusable logic in `users/fleetsing/`
+- layout-specific userspace helpers in `users/fleetsing/layouts/<layout-name>/`
+
+Keep this split in mind:
+
+- put generic userspace hooks and helpers in top-level `users/fleetsing/`
+- put physical-layout-specific positional aliases, combos, and Auto Shift behavior under `users/fleetsing/layouts/`
+- keep `keymap.c` focused on the actual layer matrix and any truly keymap-local glue
 
 If the task is about pins, matrix wiring, split transport, development-board settings, or board conversion, inspect `../qmk_firmware/` and consider moving the change there instead.
 

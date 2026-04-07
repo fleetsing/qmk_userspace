@@ -9,3 +9,15 @@ void fleetsing_set_scrolling_enabled(bool enabled) {
 bool fleetsing_get_scrolling_enabled(void) {
     return fleetsing_scrolling_enabled;
 }
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (!fleetsing_pointing_process_record(keycode, record)) {
+        return false;
+    }
+
+    if (!fleetsing_repeat_process_record(keycode, record)) {
+        return false;
+    }
+
+    return true;
+}

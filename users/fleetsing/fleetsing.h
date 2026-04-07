@@ -3,7 +3,7 @@
 #include QMK_KEYBOARD_H
 #include "keymap_finnish.h"
 
-/* Move the shared enums out of keymap.c so display.c and pointing.c can see them. */
+/* Shared enums used across the fleetsing userspace. */
 enum charybdis_keymap_layers {
     LAYER_BASE = 0,
     LAYER_NUMBERS,
@@ -19,12 +19,13 @@ enum custom_keycodes {
     SET_MS_R,
 };
 
-#include "layout_positions.h"
-
-/* Shared by pointing.c */
-/* Automatically enable sniping-mode on the pointer layer */
-#define CHARYBDIS_AUTO_SNIPING_ON_LAYER LAYER_POINTER
-
-/* Shared pointing state helpers used by keymap.c and pointing.c */
+/* Shared pointing state helpers used by the userspace modules. */
 void fleetsing_set_scrolling_enabled(bool enabled);
 bool fleetsing_get_scrolling_enabled(void);
+bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
+bool fleetsing_repeat_process_record(uint16_t keycode, keyrecord_t *record);
+
+/* Layout helpers can override this if a keyboard wants different behaviour. */
+#ifndef FLEETSING_AUTO_SNIPING_LAYER
+#    define FLEETSING_AUTO_SNIPING_LAYER LAYER_POINTER
+#endif
