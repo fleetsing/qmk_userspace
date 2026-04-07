@@ -258,10 +258,6 @@ bool remember_last_key_user(uint16_t keycode, keyrecord_t *record, uint8_t *reme
     return true;
 }
 
-// bool get_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
-//     return get_custom_auto_shifted_key(keycode, record);
-// }
-
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case SET_MS_L:
