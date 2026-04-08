@@ -22,6 +22,65 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
 }
 
 /*
+ * Keep the custom Auto Shift key lists in one place so the QMK hook that marks
+ * them as custom and the press/release handlers cannot drift apart.
+ */
+#define FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(X) \
+    X(S(FI_4))                                     \
+    X(A(FI_2))                                     \
+    X(FI_DOT)                                      \
+    X(FI_COMM)                                     \
+    X(FI_PLUS)                                     \
+    X(FI_MINS)                                     \
+    X(S(FI_7))                                     \
+    X(S(FI_QUOT))                                  \
+    X(S(FI_DOT))                                   \
+    X(A(FI_DIAE))                                  \
+    X(S(FI_8))                                     \
+    X(A(FI_8))                                     \
+    X(S(FI_9))                                     \
+    X(A(FI_9))                                     \
+    X(FI_QUOT)                                     \
+    X(S(FI_6))
+
+#define FLEETSING_CUSTOM_RETRO_AUTOSHIFT_POSITION_CASES(X) \
+    X(_L25)                                                \
+    X(_L24)                                                \
+    X(_L23)                                                \
+    X(_L22)                                                \
+    X(_L32)                                                \
+    X(_L33)                                                \
+    X(_R35)                                                \
+    X(_R33)                                                \
+    X(_R32)                                                \
+    X(_R22)                                                \
+    X(_R23)                                                \
+    X(_R24)                                                \
+    X(_R25)
+
+static bool fleetsing_is_custom_autoshift_symbol(uint16_t keycode) {
+    switch (keycode) {
+#define FLEETSING_CASE(kc) case kc:
+        FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(FLEETSING_CASE)
+            return true;
+#undef FLEETSING_CASE
+        default:
+            return false;
+    }
+}
+
+static bool fleetsing_is_custom_retro_autoshift_position(uint16_t keycode) {
+    switch (keycode) {
+#define FLEETSING_CASE(kc) case kc:
+        FLEETSING_CUSTOM_RETRO_AUTOSHIFT_POSITION_CASES(FLEETSING_CASE)
+            return true;
+#undef FLEETSING_CASE
+        default:
+            return false;
+    }
+}
+
+/*
  * Finnish symbol access keeps the same physical combos in both OS modes.
  *
  * Some symbols are raw Finnish-layout keycodes on both platforms, while others
@@ -77,46 +136,13 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
 }
 
 bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
+    (void)record;
+
     /*
-     * Keep this list in sync with the explicit custom mappings below in
-     * autoshift_press_user() and autoshift_release_user(). If a key is added
-     * here without a matching press/release mapping, it falls back to normal
-     * Shift behavior instead of the intended Finnish symbol override.
+     * The symbol overrides and selected Retro Shift positions share the same
+     * custom Auto Shift hook so QMK routes both through the userspace handlers.
      */
-    switch (keycode) {
-        case S(FI_4):
-        case A(FI_2):
-        case FI_DOT:
-        case FI_COMM:
-        case FI_PLUS:
-        case FI_MINS:
-        case S(FI_7):
-        case S(FI_QUOT):
-        case S(FI_DOT):
-        case A(FI_DIAE):
-        case S(FI_8):
-        case A(FI_8):
-        case S(FI_9):
-        case A(FI_9):
-        case FI_QUOT:
-        case S(FI_6):
-        case _L25:
-        case _L24:
-        case _L23:
-        case _L22:
-        case _L32:
-        case _L33:
-        case _R35:
-        case _R33:
-        case _R32:
-        case _R22:
-        case _R23:
-        case _R24:
-        case _R25:
-            return true;
-        default:
-            return false;
-    }
+    return fleetsing_is_custom_autoshift_symbol(keycode) || fleetsing_is_custom_retro_autoshift_position(keycode);
 }
 
 static bool fleetsing_is_retro_autoshift_key(uint16_t keycode, keyrecord_t *record) {
@@ -174,24 +200,11 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     fleetsing_autoshift_resolution_haptic(shifted, record);
 
     switch (keycode) {
-        case S(FI_4):
-        case A(FI_2):
-        case FI_DOT:
-        case FI_COMM:
-        case FI_PLUS:
-        case FI_MINS:
-        case S(FI_7):
-        case S(FI_QUOT):
-        case S(FI_DOT):
-        case A(FI_DIAE):
-        case S(FI_8):
-        case A(FI_8):
-        case S(FI_9):
-        case A(FI_9):
-        case FI_QUOT:
-        case S(FI_6):
+#define FLEETSING_CASE(kc) case kc:
+        FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(FLEETSING_CASE)
             register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
             break;
+#undef FLEETSING_CASE
         default:
             if (shifted) {
                 add_weak_mods(MOD_BIT(KC_LSFT));
@@ -202,22 +215,8 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 
 void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     switch (keycode) {
-        case S(FI_4):
-        case A(FI_2):
-        case FI_DOT:
-        case FI_COMM:
-        case FI_PLUS:
-        case FI_MINS:
-        case S(FI_7):
-        case S(FI_QUOT):
-        case S(FI_DOT):
-        case A(FI_DIAE):
-        case S(FI_8):
-        case A(FI_8):
-        case S(FI_9):
-        case A(FI_9):
-        case FI_QUOT:
-        case S(FI_6): {
+#define FLEETSING_CASE(kc) case kc:
+        FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(FLEETSING_CASE) {
             uint16_t output_keycode = fleetsing_autoshift_output_keycode(keycode, shifted);
 
             unregister_code16(output_keycode);
@@ -226,6 +225,7 @@ void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record)
             }
             break;
         }
+#undef FLEETSING_CASE
         default:
             unregister_code16((IS_RETRO(keycode)) ? keycode & 0xFF : keycode);
     }
