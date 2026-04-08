@@ -24,11 +24,12 @@ enum custom_keycodes {
      * SAFE_RANGE keeps these custom keycodes clear of the keyboard's built-in
      * and feature-provided keycode ranges.
      *
-     * These select which combined pointing-device report is converted into
-     * scroll.
+     * These control userspace-owned board behavior.
      */
     SET_MS_L = SAFE_RANGE,
     SET_MS_R,
+    OS_MAC,
+    OS_PC,
 };
 
 typedef enum {
@@ -36,6 +37,11 @@ typedef enum {
     FLEETSING_SCROLL_SIDE_LEFT = 0,
     FLEETSING_SCROLL_SIDE_RIGHT,
 } fleetsing_scroll_side_t;
+
+typedef enum {
+    FLEETSING_OS_MAC = 0,
+    FLEETSING_OS_PC,
+} fleetsing_os_mode_t;
 
 /*
  * Shared state and hook helpers used across the userspace modules.
@@ -46,11 +52,16 @@ typedef enum {
  */
 void                    fleetsing_set_scroll_side(fleetsing_scroll_side_t side);
 fleetsing_scroll_side_t fleetsing_get_scroll_side(void);
+fleetsing_os_mode_t     fleetsing_get_os_mode(void);
+void                    fleetsing_set_os_mode(fleetsing_os_mode_t mode);
+const char             *fleetsing_get_os_mode_name(void);
+uint16_t                fleetsing_os_keycode(uint16_t mac_keycode, uint16_t pc_keycode);
 /*
  * Key and pointing modules call this to reset the OLED idle timer after real
  * user activity. The timer itself stays private to the display module.
  */
 void fleetsing_display_note_activity(void);
+bool fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
 void fleetsing_autoshift_haptic_matrix_scan(void);

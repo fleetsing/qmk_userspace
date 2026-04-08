@@ -10,7 +10,9 @@
  * - key_combos[] maps that source chord to the emitted keycode
  *
  * Several emitted symbols are also listed in fi_autoshift.c because they have
- * custom Finnish Auto Shift behavior. When changing those outputs, check both
+ * custom Finnish Auto Shift behavior. The combo outputs keep the original raw
+ * keycodes that already worked with Auto Shift; fi_autoshift.c now branches the
+ * actual emitted symbol by OS mode. When changing those outputs, check both
  * files together.
  */
 

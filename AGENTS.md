@@ -39,6 +39,14 @@ When changing behavior in this repository, keep nearby inline documentation up t
 - document screen/status abbreviations and other QMK-specific shorthand close to the code that renders or interprets them
 - do not add boilerplate comments for self-evident lines; focus on intent, ownership, and behavior
 
+## OLED UI Expectations
+
+When extending the split OLED UI for this userspace:
+
+- keep the master side anchored on stable, orientation-friendly context such as the current layer and primary status summary
+- default temporary, modal, or drill-down pages to the non-master side unless there is a strong usability reason to interrupt the master-side overview
+- if a temporary page or overlay is added, document which side owns it and why near the rendering code
+
 If the task is about pins, matrix wiring, split transport, development-board settings, or board conversion, inspect `../qmk_firmware/` and consider moving the change there instead.
 
 ## Verification

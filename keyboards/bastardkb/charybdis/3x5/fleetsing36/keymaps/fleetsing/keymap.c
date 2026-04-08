@@ -103,11 +103,15 @@
 /**
  * \brief Media/system layer.
  *
+ * OS_MAC and OS_PC toggle the persisted Ctrl/GUI swap used for macOS vs PC
+ * shortcut ergonomics. Symbols still follow the Finnish OS layout in both
+ * modes; only the modifier behavior and mode-dependent symbol chords change.
+ *
  * EE_CLR clears persisted QMK settings from EEPROM. QK_BOOT jumps into the
  * bootloader for flashing.
  */
 #define LAYOUT_LAYER_MEDIA                                                                                                          \
-    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    KC_UP,      XXXXXXX,    XXXXXXX,    \
+    OS_MAC,     OS_PC,      XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    KC_UP,      XXXXXXX,    XXXXXXX,    \
     KC_MPRV,    KC_VOLD,    KC_MUTE,    KC_VOLU,    KC_MNXT,            XXXXXXX,    KC_LEFT,    KC_DOWN,    KC_RGHT,    XXXXXXX,    \
     XXXXXXX,    XXXXXXX,    XXXXXXX,    EE_CLR,     QK_BOOT,            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    \
                             KC_MPLY,    XXXXXXX,    KC_MSTP,            XXXXXXX,    XXXXXXX,    XXXXXXX

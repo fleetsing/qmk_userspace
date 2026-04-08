@@ -21,6 +21,61 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
 #endif
 }
 
+/*
+ * Finnish symbol access keeps the same physical combos in both OS modes.
+ *
+ * Some symbols are raw Finnish-layout keycodes on both platforms, while others
+ * need different modifier chords on macOS and PC even though the resulting
+ * glyph should stay the same.
+ *
+ * Keep the combo outputs themselves on their original raw keycodes. That
+ * preserves the Retro Shift behavior that already worked before OS-mode
+ * support was added. OS-specific branching only happens here when the actual
+ * emitted symbol differs between macOS and PC mode.
+ *
+ * Angle brackets are the main example: macOS intentionally keeps the original
+ * working grave-key behavior (`FI_SECT` / `S(FI_SECT)`), while PC mode uses
+ * the Finnish angle-bracket keycodes instead.
+ */
+static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifted) {
+    switch (keycode) {
+        case S(FI_4):
+            return shifted ? fleetsing_os_keycode(A(FI_4), FI_DLR) : S(FI_4);
+        case A(FI_2):
+            return fleetsing_os_keycode(A(FI_2), FI_AT);
+        case FI_DOT:
+            return shifted ? S(FI_PLUS) : FI_DOT;
+        case FI_COMM:
+            return shifted ? S(FI_1) : FI_COMM;
+        case FI_PLUS:
+            return shifted ? S(FI_0) : FI_PLUS;
+        case FI_MINS:
+            return shifted ? S(FI_MINS) : FI_MINS;
+        case S(FI_7):
+            return shifted ? fleetsing_os_keycode(S(A(FI_7)), FI_BSLS) : S(FI_7);
+        case S(FI_QUOT):
+            return shifted ? S(FI_3) : S(FI_QUOT);
+        case S(FI_DOT):
+            return shifted ? S(FI_COMM) : S(FI_DOT);
+        case A(FI_DIAE):
+            return fleetsing_os_keycode(A(FI_DIAE), FI_TILD);
+        case S(FI_8):
+            return shifted ? fleetsing_os_keycode(S(A(FI_8)), FI_LCBR) : S(FI_8);
+        case A(FI_8):
+            return shifted ? fleetsing_os_keycode(FI_SECT, FI_LABK) : fleetsing_os_keycode(A(FI_8), FI_LBRC);
+        case S(FI_9):
+            return shifted ? fleetsing_os_keycode(S(A(FI_9)), FI_RCBR) : S(FI_9);
+        case A(FI_9):
+            return shifted ? fleetsing_os_keycode(S(FI_SECT), FI_RABK) : fleetsing_os_keycode(A(FI_9), FI_RBRC);
+        case FI_QUOT:
+            return shifted ? S(FI_2) : FI_QUOT;
+        case S(FI_6):
+            return shifted ? S(FI_5) : S(FI_6);
+        default:
+            return (IS_RETRO(keycode)) ? keycode & 0xFF : keycode;
+    }
+}
+
 bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
     /*
      * Keep this list in sync with the explicit custom mappings below in
@@ -120,52 +175,22 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 
     switch (keycode) {
         case S(FI_4):
-            register_code16((!shifted) ? S(FI_4) : A(FI_4));
-            break;
         case A(FI_2):
-            register_code16((!shifted) ? A(FI_2) : S(FI_DIAE));
-            break;
         case FI_DOT:
-            register_code16((!shifted) ? FI_DOT : S(FI_PLUS));
-            break;
         case FI_COMM:
-            register_code16((!shifted) ? FI_COMM : S(FI_1));
-            break;
         case FI_PLUS:
-            register_code16((!shifted) ? FI_PLUS : S(FI_0));
-            break;
         case FI_MINS:
-            register_code16((!shifted) ? FI_MINS : S(FI_MINS));
-            break;
         case S(FI_7):
-            register_code16((!shifted) ? S(FI_7) : S(A(FI_7)));
-            break;
         case S(FI_QUOT):
-            register_code16((!shifted) ? S(FI_QUOT) : S(FI_3));
-            break;
         case S(FI_DOT):
-            register_code16((!shifted) ? S(FI_DOT) : S(FI_COMM));
-            break;
         case A(FI_DIAE):
-            register_code16((!shifted) ? A(FI_DIAE) : A(FI_7));
-            break;
         case S(FI_8):
-            register_code16((!shifted) ? S(FI_8) : S(A(FI_8)));
-            break;
         case A(FI_8):
-            register_code16((!shifted) ? A(FI_8) : FI_SECT);
-            break;
         case S(FI_9):
-            register_code16((!shifted) ? S(FI_9) : S(A(FI_9)));
-            break;
         case A(FI_9):
-            register_code16((!shifted) ? A(FI_9) : S(FI_SECT));
-            break;
         case FI_QUOT:
-            register_code16((!shifted) ? FI_QUOT : S(FI_2));
-            break;
         case S(FI_6):
-            register_code16((!shifted) ? S(FI_6) : S(FI_5));
+            register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
             break;
         default:
             if (shifted) {
@@ -178,101 +203,29 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     switch (keycode) {
         case S(FI_4):
-            unregister_code16((!shifted) ? S(FI_4) : A(FI_4));
-            if (shifted) {
-                set_last_keycode(A(FI_4));
-            }
-            break;
         case A(FI_2):
-            unregister_code16((!shifted) ? A(FI_2) : S(FI_DIAE));
-            if (shifted) {
-                set_last_keycode(S(FI_DIAE));
-            }
-            break;
         case FI_DOT:
-            unregister_code16((!shifted) ? FI_DOT : S(FI_PLUS));
-            if (shifted) {
-                set_last_keycode(S(FI_PLUS));
-            }
-            break;
         case FI_COMM:
-            unregister_code16((!shifted) ? FI_COMM : S(FI_1));
-            if (shifted) {
-                set_last_keycode(S(FI_1));
-            }
-            break;
         case FI_PLUS:
-            unregister_code16((!shifted) ? FI_PLUS : S(FI_0));
-            if (shifted) {
-                set_last_keycode(S(FI_0));
-            }
-            break;
         case FI_MINS:
-            unregister_code16((!shifted) ? FI_MINS : S(FI_MINS));
-            if (shifted) {
-                set_last_keycode(S(FI_MINS));
-            }
-            break;
         case S(FI_7):
-            unregister_code16((!shifted) ? S(FI_7) : S(A(FI_7)));
-            if (shifted) {
-                set_last_keycode(S(A(FI_7)));
-            }
-            break;
         case S(FI_QUOT):
-            unregister_code16((!shifted) ? S(FI_QUOT) : S(FI_3));
-            if (shifted) {
-                set_last_keycode(S(FI_3));
-            }
-            break;
         case S(FI_DOT):
-            unregister_code16((!shifted) ? S(FI_DOT) : S(FI_COMM));
-            if (shifted) {
-                set_last_keycode(S(FI_COMM));
-            }
-            break;
         case A(FI_DIAE):
-            unregister_code16((!shifted) ? A(FI_DIAE) : A(FI_7));
-            if (shifted) {
-                set_last_keycode(A(FI_7));
-            }
-            break;
         case S(FI_8):
-            unregister_code16((!shifted) ? S(FI_8) : S(A(FI_8)));
-            if (shifted) {
-                set_last_keycode(S(A(FI_8)));
-            }
-            break;
         case A(FI_8):
-            unregister_code16((!shifted) ? A(FI_8) : FI_SECT);
-            if (shifted) {
-                set_last_keycode(FI_SECT);
-            }
-            break;
         case S(FI_9):
-            unregister_code16((!shifted) ? S(FI_9) : S(A(FI_9)));
-            if (shifted) {
-                set_last_keycode(S(A(FI_9)));
-            }
-            break;
         case A(FI_9):
-            unregister_code16((!shifted) ? A(FI_9) : S(FI_SECT));
-            if (shifted) {
-                set_last_keycode(S(FI_SECT));
-            }
-            break;
         case FI_QUOT:
-            unregister_code16((!shifted) ? FI_QUOT : S(FI_2));
+        case S(FI_6): {
+            uint16_t output_keycode = fleetsing_autoshift_output_keycode(keycode, shifted);
+
+            unregister_code16(output_keycode);
             if (shifted) {
-                set_last_keycode(S(FI_2));
+                set_last_keycode(output_keycode);
             }
             break;
-        case S(FI_6):
-            unregister_code16((!shifted) ? S(FI_6) : S(FI_5));
-            if (shifted) {
-                set_last_keycode(S(FI_5));
-            }
-            break;
+        }
         default:
             unregister_code16((IS_RETRO(keycode)) ? keycode & 0xFF : keycode);
     }
