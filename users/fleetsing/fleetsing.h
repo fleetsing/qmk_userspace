@@ -46,9 +46,14 @@ typedef enum {
  */
 void                    fleetsing_set_scroll_side(fleetsing_scroll_side_t side);
 fleetsing_scroll_side_t fleetsing_get_scroll_side(void);
-bool                    fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
-bool                    fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
-void                    fleetsing_autoshift_haptic_matrix_scan(void);
+/*
+ * Key and pointing modules call this to reset the OLED idle timer after real
+ * user activity. The timer itself stays private to the display module.
+ */
+void fleetsing_display_note_activity(void);
+bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
+bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
+void fleetsing_autoshift_haptic_matrix_scan(void);
 
 /*
  * Layout helpers can override this if a keyboard wants a different "precision

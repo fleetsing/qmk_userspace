@@ -30,6 +30,15 @@ Keep this split in mind:
 - put physical-layout-specific positional aliases, combos, and Auto Shift behavior under `users/fleetsing/layouts/`
 - keep `keymap.c` focused on the actual layer matrix and any truly keymap-local glue
 
+## Documentation Expectations
+
+When changing behavior in this repository, keep nearby inline documentation up to date when it materially improves readability.
+
+- prefer short block comments ahead of non-obvious helpers, state, and hook implementations
+- update existing comments when behavior changes so code and documentation do not drift apart
+- document screen/status abbreviations and other QMK-specific shorthand close to the code that renders or interprets them
+- do not add boilerplate comments for self-evident lines; focus on intent, ownership, and behavior
+
 If the task is about pins, matrix wiring, split transport, development-board settings, or board conversion, inspect `../qmk_firmware/` and consider moving the change there instead.
 
 ## Verification

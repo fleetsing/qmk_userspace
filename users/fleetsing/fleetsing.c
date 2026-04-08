@@ -18,6 +18,14 @@ fleetsing_scroll_side_t fleetsing_get_scroll_side(void) {
 }
 
 bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
+    /*
+     * Treat any physical key event as OLED activity.
+     *
+     * This userspace-owned timer is more predictable than relying on generic
+     * core activity timestamps when split pointing is also active.
+     */
+    fleetsing_display_note_activity();
+
     /* Pre-process runs before QMK's normal key handling and is used here for haptic timing. */
     if (!fleetsing_autoshift_haptic_process_record(keycode, record)) {
         return false;

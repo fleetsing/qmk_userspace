@@ -18,6 +18,17 @@ static void fleetsing_reset_scroll_accumulators(void) {
     scroll_accumulated_h = 0;
     scroll_accumulated_v = 0;
 }
+
+/*
+ * Treat any non-zero pointing-device report as real user activity.
+ *
+ * This is narrower than QMK's generic pointing activity path: it only resets
+ * the OLED idle timer when one of the trackballs actually produces movement,
+ * scroll, or button data that survives into userspace.
+ */
+static bool fleetsing_mouse_report_has_activity(report_mouse_t report) {
+    return report.x != 0 || report.y != 0 || report.h != 0 || report.v != 0 || report.buttons != 0;
+}
 #endif
 
 bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record) {
@@ -53,6 +64,10 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
      * Only the selected side is transformed into scroll. The other side keeps
      * acting as a normal pointer source, and DPI remains managed by Charybdis.
      */
+    if (fleetsing_mouse_report_has_activity(left_report) || fleetsing_mouse_report_has_activity(right_report)) {
+        fleetsing_display_note_activity();
+    }
+
     if (fleetsing_get_scroll_side() == FLEETSING_SCROLL_SIDE_RIGHT) {
         scroll_accumulated_h += (float)right_report.x / SCROLL_DIVISOR_H;
         scroll_accumulated_v += (float)right_report.y / SCROLL_DIVISOR_V;
@@ -95,6 +110,9 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 #endif
 
 void keyboard_post_init_user(void) {
+    /* Start the OLED idle timer in the "recently active" state after boot. */
+    fleetsing_display_note_activity();
+
 #ifdef HAPTIC_ENABLE
     if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {
         haptic_set_mode(DRV2605L_DEFAULT_MODE);

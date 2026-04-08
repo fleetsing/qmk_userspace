@@ -102,6 +102,23 @@
 /* SH1107 + 64x128 matches the physical display modules on this board. */
 #    define OLED_IC OLED_IC_SH1107
 #    define OLED_DISPLAY_64X128
+/*
+ * Keep QMK's built-in timeout disabled for this keymap.
+ *
+ * With split pointing enabled, tiny continuous pointer activity can keep the
+ * core timeout from ever appearing idle. Userspace handles OLED sleep/wake
+ * explicitly instead, using key and trackball activity that is filtered for
+ * real user input.
+ */
+#    define OLED_TIMEOUT 0
+/*
+ * Sleep the OLEDs after 30 seconds without tracked key or pointing activity.
+ *
+ * The final implementation uses a hard oled_off() on the master half. Fade-out
+ * was tested and rejected because it did not behave reliably on this SH1107
+ * path, while hard-off does.
+ */
+#    define FLEETSING_OLED_IDLE_TIMEOUT 30000
 #endif // OLED_ENABLE
 
 #ifdef HAPTIC_ENABLE
