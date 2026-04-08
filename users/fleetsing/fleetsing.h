@@ -43,6 +43,21 @@ typedef enum {
     FLEETSING_OS_PC,
 } fleetsing_os_mode_t;
 
+typedef enum {
+    FLEETSING_HAPTIC_SCROLL_SIDE = 0,
+    FLEETSING_HAPTIC_POINTER_LAYER_ON,
+    FLEETSING_HAPTIC_POINTER_LAYER_OFF,
+    FLEETSING_HAPTIC_OS_MAC,
+    FLEETSING_HAPTIC_OS_PC,
+    FLEETSING_HAPTIC_LAYER_LOCK_ON,
+    FLEETSING_HAPTIC_LAYER_LOCK_OFF,
+    FLEETSING_HAPTIC_MACRO_RECORD_START,
+    FLEETSING_HAPTIC_MACRO_RECORD_STOP,
+    FLEETSING_HAPTIC_MACRO_PLAY,
+    FLEETSING_HAPTIC_EEPROM_CLEAR,
+    FLEETSING_HAPTIC_BOOTLOADER,
+} fleetsing_haptic_event_t;
+
 /*
  * Shared state and hook helpers used across the userspace modules.
  *
@@ -56,6 +71,7 @@ fleetsing_os_mode_t     fleetsing_get_os_mode(void);
 void                    fleetsing_set_os_mode(fleetsing_os_mode_t mode);
 const char             *fleetsing_get_os_mode_name(void);
 uint16_t                fleetsing_os_keycode(uint16_t mac_keycode, uint16_t pc_keycode);
+void                    fleetsing_haptic_play_event(fleetsing_haptic_event_t event);
 /*
  * Key and pointing modules call this to reset the OLED idle timer after real
  * user activity. The timer itself stays private to the display module.

@@ -597,6 +597,7 @@ static void fleetsing_format_macro_status(char *buffer, size_t size) {
 bool dynamic_macro_record_start_user(int8_t direction) {
     dynamic_macro_led_blink();
     fleetsing_set_macro_status(direction > 0 ? FLEETSING_MACRO_REC1 : FLEETSING_MACRO_REC2);
+    fleetsing_haptic_play_event(FLEETSING_HAPTIC_MACRO_RECORD_START);
     return true;
 }
 
@@ -613,6 +614,7 @@ bool dynamic_macro_record_key_user(int8_t direction, keyrecord_t *record) {
 bool dynamic_macro_record_end_user(int8_t direction) {
     dynamic_macro_led_blink();
     fleetsing_set_macro_status(direction > 0 ? FLEETSING_MACRO_SAVE1 : FLEETSING_MACRO_SAVE2);
+    fleetsing_haptic_play_event(FLEETSING_HAPTIC_MACRO_RECORD_STOP);
     return true;
 }
 
@@ -620,6 +622,7 @@ bool dynamic_macro_record_end_user(int8_t direction) {
 bool dynamic_macro_play_user(int8_t direction) {
     dynamic_macro_led_blink();
     fleetsing_set_macro_status(direction > 0 ? FLEETSING_MACRO_PLAY1 : FLEETSING_MACRO_PLAY2);
+    fleetsing_haptic_play_event(FLEETSING_HAPTIC_MACRO_PLAY);
     return true;
 }
 #else

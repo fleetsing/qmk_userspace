@@ -35,6 +35,9 @@ bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case SET_MS_L:
             if (record->event.pressed) {
+                if (fleetsing_get_scroll_side() != FLEETSING_SCROLL_SIDE_LEFT) {
+                    fleetsing_haptic_play_event(FLEETSING_HAPTIC_SCROLL_SIDE);
+                }
                 /*
                  * Reset any fractional carry so leftover motion from the
                  * previous side does not leak into the newly selected side.
@@ -47,6 +50,9 @@ bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record) {
             return false;
         case SET_MS_R:
             if (record->event.pressed) {
+                if (fleetsing_get_scroll_side() != FLEETSING_SCROLL_SIDE_RIGHT) {
+                    fleetsing_haptic_play_event(FLEETSING_HAPTIC_SCROLL_SIDE);
+                }
                 fleetsing_set_scroll_side(FLEETSING_SCROLL_SIDE_RIGHT);
 #ifdef POINTING_DEVICE_COMBINED
                 fleetsing_reset_scroll_accumulators();
@@ -100,11 +106,18 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
 
 #ifdef POINTING_DEVICE_ENABLE
 layer_state_t layer_state_set_user(layer_state_t state) {
+    bool sniping_was_enabled = charybdis_get_pointer_sniping_enabled();
+    bool sniping_enabled     = layer_state_cmp(state, FLEETSING_AUTO_SNIPING_LAYER);
+
     /*
      * Pointer-layer activation drives sniping mode, but the actual CPI change
      * is applied in the firmware's Charybdis layer.
      */
-    charybdis_set_pointer_sniping_enabled(layer_state_cmp(state, FLEETSING_AUTO_SNIPING_LAYER));
+    charybdis_set_pointer_sniping_enabled(sniping_enabled);
+    if (sniping_was_enabled != sniping_enabled) {
+        fleetsing_haptic_play_event(sniping_enabled ? FLEETSING_HAPTIC_POINTER_LAYER_ON : FLEETSING_HAPTIC_POINTER_LAYER_OFF);
+    }
+
     return state;
 }
 #endif
