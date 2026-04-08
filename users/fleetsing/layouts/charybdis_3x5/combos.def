@@ -1,6 +1,21 @@
 #pragma once
 
+/*
+ * Combo definitions are included directly from keymap.c so QMK's keymap
+ * introspection still sees key_combos.
+ *
+ * Naming convention:
+ * - enum names describe the physical positions involved
+ * - each *_COMBO array lists the source keys
+ * - key_combos[] maps that source chord to the emitted keycode
+ *
+ * Several emitted symbols are also listed in fi_autoshift.c because they have
+ * custom Finnish Auto Shift behavior. When changing those outputs, check both
+ * files together.
+ */
+
 enum combos {
+    /* Same-row punctuation / tab / thumb combos. */
     L24_L23,
     L34_L33,
     L14_L13,
@@ -17,6 +32,7 @@ enum combos {
     R41_R43,
     R42_R43,
 
+    /* Vertical same-finger combos used for additional symbol access. */
     L11_L21,
     L21_L31,
     L12_L22,
@@ -36,6 +52,7 @@ enum combos {
     R24_R34,
 };
 
+/* Chord source definitions. COMBO_END terminates each source sequence. */
 const uint16_t PROGMEM L24_L23_COMBO[] = {_L24, _L23, COMBO_END};
 const uint16_t PROGMEM L34_L33_COMBO[] = {_L34, _L33, COMBO_END};
 const uint16_t PROGMEM L14_L13_COMBO[] = {_L14, _L13, COMBO_END};
@@ -70,6 +87,7 @@ const uint16_t PROGMEM R23_R33_COMBO[] = {_R23, _R33, COMBO_END};
 const uint16_t PROGMEM R14_R24_COMBO[] = {_R14, _R24, COMBO_END};
 const uint16_t PROGMEM R24_R34_COMBO[] = {_R24, _R34, COMBO_END};
 
+/* Output mapping for each chord. Order must match the enum above. */
 combo_t key_combos[] = {
     [L24_L23] = COMBO(L24_L23_COMBO, FI_COMM),
     [L34_L33] = COMBO(L34_L33_COMBO, FI_COLN),

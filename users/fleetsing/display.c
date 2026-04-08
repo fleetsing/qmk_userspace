@@ -1,13 +1,13 @@
 #include "fleetsing.h"
 
-// rotate the OLEDs
+/* The displays are physically mounted upside down relative to QMK defaults. */
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return OLED_ROTATION_180;
 }
 
 #ifdef OLED_ENABLE
 bool oled_task_user(void) {
-    // Host Keyboard Layer Status
+    /* Keep this screen compact: highest layer plus host LED state only. */
     oled_write_P(PSTR("Layer:\n"), false);
 
     switch (get_highest_layer(layer_state)) {
@@ -37,12 +37,12 @@ bool oled_task_user(void) {
             oled_write_ln_P(PSTR("Undefined"), false);
     }
 
-    // Host Keyboard LED Status
+    /* Host LED state reflects the OS, not any local userspace state. */
     led_t led_state = host_keyboard_led_state();
     oled_write_P(led_state.num_lock ? PSTR("NUM ") : PSTR("    "), false);
     oled_write_P(led_state.caps_lock ? PSTR("CAP ") : PSTR("    "), false);
     oled_write_P(led_state.scroll_lock ? PSTR("SCR ") : PSTR("    "), false);
-    
+
     return false;
 }
 #endif

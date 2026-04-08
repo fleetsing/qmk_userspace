@@ -1,6 +1,10 @@
 #include "fleetsing.h"
 #include "layouts/charybdis_3x5/layout_positions.h"
 
+/*
+ * Retro Shift resolves on release, so this state tracks a pending key long
+ * enough to fire a haptic cue once the Auto Shift timeout has elapsed.
+ */
 static struct {
     bool        active;
     bool        fired;
@@ -18,6 +22,12 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
 }
 
 bool get_custom_auto_shifted_key(uint16_t keycode, keyrecord_t *record) {
+    /*
+     * Keep this list in sync with the explicit custom mappings below in
+     * autoshift_press_user() and autoshift_release_user(). If a key is added
+     * here without a matching press/release mapping, it falls back to normal
+     * Shift behavior instead of the intended Finnish symbol override.
+     */
     switch (keycode) {
         case S(FI_4):
         case A(FI_2):
@@ -100,6 +110,12 @@ void fleetsing_autoshift_haptic_matrix_scan(void) {
 }
 
 void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
+    /*
+     * These overrides intentionally bypass "plain Shift" output for selected
+     * Finnish-layout symbols. Any change here must be mirrored in
+     * autoshift_release_user() so unregister_code16() and repeat-key state stay
+     * consistent.
+     */
     fleetsing_autoshift_resolution_haptic(shifted, record);
 
     switch (keycode) {

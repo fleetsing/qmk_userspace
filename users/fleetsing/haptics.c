@@ -1,5 +1,10 @@
 #include "fleetsing.h"
 
+/*
+ * Haptic filtering should operate on the "effective" key when possible, so a
+ * tapped mod-tap behaves like its tap key while a held mod-tap still behaves
+ * like a modifier/layer key.
+ */
 static uint16_t fleetsing_haptic_normalize_keycode(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case QK_MODS ... QK_MODS_MAX:
@@ -16,6 +21,10 @@ static uint16_t fleetsing_haptic_normalize_keycode(uint16_t keycode, keyrecord_t
 __attribute__((weak)) bool get_haptic_enabled_key(uint16_t keycode, keyrecord_t *record) {
     keycode = fleetsing_haptic_normalize_keycode(keycode, record);
 
+    /*
+     * The NO_HAPTIC_* defines in the keymap config act as category filters.
+     * Keep the cases grouped by category so the config flags remain readable.
+     */
     switch (keycode) {
 #ifdef NO_HAPTIC_MOD
         case QK_MOD_TAP ... QK_MOD_TAP_MAX:

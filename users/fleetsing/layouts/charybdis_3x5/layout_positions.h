@@ -1,5 +1,16 @@
 #pragma once
 
+/*
+ * Positional aliases for the 3x5 Charybdis layout.
+ *
+ * Naming convention:
+ * - `_Lxy` and `_Rxy` are left/right physical positions
+ * - `x` is the row number, `y` is the position within that side
+ *
+ * Keep physical-position behavior here so combos and the base layer can refer
+ * to the same positions without duplicating layer-tap or mod-tap details.
+ */
+
 // Left-hand row 1.
 #define _L15 FI_Q
 #define _L14 FI_W
@@ -22,6 +33,7 @@
 #define _L31 FI_B
 
 // Left-hand thumb cluster.
+// LT(layer, key) taps as key and holds as the target layer.
 #define _L43 LT(LAYER_NUMBERS, KC_SPC)
 #define _L42 MS_BTN1
 #define _L41 LT(LAYER_FUNCTION, KC_ESC)
