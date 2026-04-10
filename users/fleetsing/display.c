@@ -79,7 +79,7 @@ static fleetsing_display_sync_t fleetsing_display_remote_state = {0};
 
 /*
  * OLED glossary:
- * - Layer: highest currently active layer on the master half.
+ * - Layer: highest currently active layer on the physical left-side dashboard.
  * - Lock: layers latched with QMK Layer Lock, not merely held.
  * - Ptr: two mode flags plus the selected scroll source, shown as "<SD> <L/R>".
  *        S = sniping, D = drag-scroll, L/R = left/right sensor becomes scroll.
@@ -90,10 +90,10 @@ static fleetsing_display_sync_t fleetsing_display_remote_state = {0};
  * - OSM: one-shot modifiers in Shift, Ctrl, Alt, GUI order.
  *        Lowercase means armed for the next key, uppercase means locked.
  * - Host: host keyboard LED state in Num, Caps, Scroll order.
- * - Alert: an offhand warning-first summary for unusual active conditions.
+ * - Alert: a right-side warning-first summary for unusual active conditions.
  * - Overlay: a short-lived bundled confirmation page that can show several
  *            changed states together, such as layer + DPI on pointer-layer entry.
- * - Macro Page: a temporary offhand detail page during macro recording,
+ * - Macro Page: a temporary right-side detail page during macro recording,
  *               playback, or recent save acknowledgement.
  * - NumWord Page: a temporary right-side detail page that shows the synced
  *                 NumWord timeout as both a countdown and a compact progress bar.
@@ -419,7 +419,7 @@ static bool fleetsing_macro_page_is_active(void) {
 }
 
 /*
- * NumWord gets its own offhand page while active so the temporary timeout is
+ * NumWord gets its own right-side page while active so the temporary timeout is
  * visible without crowding the steady-state dashboards.
  */
 static bool fleetsing_numword_page_is_active(void) {
@@ -471,7 +471,7 @@ static void fleetsing_format_numword_progress(char *buffer, size_t size) {
 
 /*
  * Split the compact macro status into a clearer action line for the dedicated
- * offhand page.
+ * right-side page.
  */
 static void fleetsing_format_macro_page_action(char *buffer, size_t size) {
 #ifdef DYNAMIC_MACRO_ENABLE
@@ -571,10 +571,10 @@ static void fleetsing_format_macro_page_slot_state(uint8_t status, char *buffer,
 
 /*
  * Treat Layer Lock, locked one-shot mods, and Caps Lock as notable enough to
- * deserve a warning-first offhand panel.
+ * deserve a warning-first right-side panel.
  *
  * The alert line is intentionally terse. More detail remains visible in the
- * surrounding fields so the offhand stays readable.
+ * surrounding fields so the right-side panel stays readable.
  */
 static bool fleetsing_format_alert(char *buffer, size_t size) {
     char value[FLEETSING_OLED_VALUE_SIZE];
@@ -911,7 +911,7 @@ static void fleetsing_format_macro_status_state(uint8_t status, char *buffer, si
 #endif
 
 /*
- * The master half is the active-status dashboard.
+ * The physical left half is the active-status dashboard.
  *
  * These fields are the ones most likely to matter while actively using the
  * board: current layer, latched layers, pointer mode, and effective DPI.
@@ -947,9 +947,9 @@ static void fleetsing_render_left_panel_remote(void) {
 }
 
 /*
- * The pointer page trades slower offhand status for direct pointer controls
- * and state. It appears automatically on the secondary half while the pointer
- * layer is active.
+ * The pointer page trades slower right-side status for direct pointer controls
+ * and state. It appears automatically on the physical right half while the
+ * pointer layer is active.
  */
 static void fleetsing_render_pointer_panel(void) {
     char value[FLEETSING_OLED_VALUE_SIZE];
@@ -982,7 +982,7 @@ static void fleetsing_render_pointer_panel_remote(void) {
 }
 
 /*
- * Macro actions use a dedicated temporary offhand page because they are
+ * Macro actions use a dedicated temporary right-side page because they are
  * explicit modal tasks that benefit from more context than the compact field.
  */
 static void fleetsing_render_macro_panel(void) {
@@ -1032,8 +1032,8 @@ static void fleetsing_render_numword_panel(void) {
 }
 
 /*
- * Overlays are intentionally simple and live on the non-master side so the
- * master display can keep its stable layer-oriented overview. When several
+ * Overlays are intentionally simple and live on the physical right side so the
+ * left-side dashboard can keep its stable layer-oriented overview. When several
  * related states change together, bundle them into the same short-lived page.
  */
 static void fleetsing_render_overlay(void) {
@@ -1059,21 +1059,21 @@ static void fleetsing_render_overlay_remote(void) {
 }
 
 /*
- * The offhand half is the lower-noise secondary panel.
+ * The physical right half is the lower-noise secondary panel.
  *
  * It intentionally omits the current layer and instead focuses on slower or
  * more situational state: OS mode, macro status, and host LEDs.
  *
  * By convention, temporary or mode-specific detail pages should prefer this
- * side so the master half keeps its stable layer-oriented overview.
+ * side so the left half keeps its stable layer-oriented overview.
  */
 static void fleetsing_render_offhand_panel(void) {
     char value[FLEETSING_OLED_VALUE_SIZE];
 
     /*
-     * Offhand side is the lower-churn status panel.
+     * Right side is the lower-churn status panel.
      *
-     * Priority order on the offhand side:
+     * Priority order on the right side:
      * 1. dedicated temporary macro page
      * 2. pointer page while the pointer layer is active
      * 3. NumWord countdown on the physical right half while the layer is active
@@ -1289,7 +1289,7 @@ bool oled_task_user(void) {
         /*
          * Use the userspace-owned key-activity timer for OLED sleep/wake so
          * split trackball chatter cannot keep the displays alive forever.
-         * The master half owns the power state and split OLED sync mirrors it
+         * The USB half owns the power state and split OLED sync mirrors it
          * to the other side.
          */
         if (fleetsing_display_idle_elapsed() >= FLEETSING_OLED_IDLE_TIMEOUT) {
