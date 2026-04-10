@@ -60,6 +60,6 @@
 #define _R35 LT(LAYER_POINTER, FI_ADIA)
 
 // Right-hand thumb cluster.
-#define _R41 LT(LAYER_MEDIA, KC_ESC)
-#define _R42 MS_BTN1
+#define _R41 LT(LAYER_MACRO, KC_BSPC)
+#define _R42 LT(LAYER_MEDIA, KC_TAB)
 #define _R43 LT(LAYER_NAVIGATION, KC_ENT)
