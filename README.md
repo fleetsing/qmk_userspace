@@ -1,59 +1,76 @@
-# QMK Userspace
+# Fleetsing QMK Userspace
 
-This is a template repository which allows for an external set of QMK keymaps to be defined and compiled. This is useful for users who want to maintain their own keymaps without having to fork the [main QMK repository](https://github.com/qmk/qmk_firmware). You must still fork the main QMK repository if writing firmware for a *new* keyboard.
+This repository is the active external userspace for a custom Charybdis Nano
+36-key setup. It holds the behavior layer of the project: the keymap, shared
+userspace code, layout-specific helpers, and the personal logic that makes the
+board feel like this board instead of a stock QMK example.
 
-## Howto configure your build targets
+It sits beside a sibling firmware repository at `../qmk_firmware/`, which owns
+the custom board definition and lower-level hardware details.
 
-1. Run the normal `qmk setup` procedure if you haven't already done so -- see [QMK Docs](https://docs.qmk.fm/#/newbs) for details.
-1. Fork this repository
-1. Clone your fork to your local machine
-1. Enable userspace in QMK config using `qmk config user.overlay_dir="$(realpath qmk_userspace)"`
-1. Add a new keymap for your board using `qmk new-keymap`
-    * This will create a new keymap in the `keyboards` directory, in the same location that would normally be used in the main QMK repository. For example, if you wanted to add a keymap for the Planck, it will be created in `keyboards/planck/keymaps/<your keymap name>`
-    * You can also create a new keymap using `qmk new-keymap -kb <your_keyboard> -km <your_keymap>`
-    * Alternatively, add your keymap manually by placing it in the location specified above.
-    * `layouts/<layout name>/<your keymap name>/keymap.*` is also supported if you prefer the layout system
-1. Add your keymap(s) to the build by running `qmk userspace-add -kb <your_keyboard> -km <your_keymap>`
-    * This will automatically update your `qmk.json` file
-    * Corresponding `qmk userspace-remove -kb <your_keyboard> -km <your_keymap>` will delete it
-    * Listing the build targets can be done with `qmk userspace-list`
-1. Commit your changes
+## What Lives Here
 
-## Howto build with GitHub
+This userspace currently centers on:
 
-1. In the GitHub Actions tab, enable workflows
-1. Push your changes above to your forked GitHub repository
-1. Look at the GitHub Actions for a new actions run
-1. Wait for the actions run to complete
-1. Inspect the Releases tab on your repository for the latest firmware build
+- the active `bastardkb/charybdis/3x5/fleetsing36` keyboard target
+- the `fleetsing` keymap
+- shared userspace modules under `users/fleetsing/`
+- layout-specific combo and Auto Shift logic under
+  `users/fleetsing/layouts/charybdis_3x5/`
 
-## Howto build locally
+This is where the board's personality lives:
 
-1. Run the normal `qmk setup` procedure if you haven't already done so -- see [QMK Docs](https://docs.qmk.fm/#/newbs) for details.
-1. Fork this repository
-1. Clone your fork to your local machine
-1. `cd` into this repository's clone directory
-1. Set global userspace path: `qmk config user.overlay_dir="$(realpath .)"` -- you MUST be located in the cloned userspace location for this to work correctly
-    * This will be automatically detected if you've `cd`ed into your userspace repository, but the above makes your userspace available regardless of your shell location.
-1. Compile normally: `qmk compile -kb your_keyboard -km your_keymap` or `make your_keyboard:your_keymap`
+- layers and layer interactions
+- combos and repeat-key usage
+- NumWord behavior
+- OLED status UI
+- haptics
+- pointer-side selection and userspace pointer behavior
+- OS-mode switching and Finnish-layout symbol handling
 
-Alternatively, if you configured your build targets above, you can use `qmk userspace-compile` to build all of your userspace targets at once.
+## Start Here
 
-## Extra info
+- Workspace overview: [`../README.md`](../README.md)
+- Workspace policy and ownership rules: [`../AGENTS.md`](../AGENTS.md)
+- Canonical workspace facts: [`../docs/qmk-context.yaml`](../docs/qmk-context.yaml)
+- Board page: [`docs/keyboards/fleetsing36.md`](docs/keyboards/fleetsing36.md)
 
-If you wish to point GitHub actions to a different repository, a different branch, or even a different keymap name, you can modify `.github/workflows/build_binaries.yml` to suit your needs.
+## Active Build Target
 
-To override the `build` job, you can change the following parameters to use a different QMK repository or branch:
-```
-    with:
-      qmk_repo: qmk/qmk_firmware
-      qmk_ref: master
-```
+- Keyboard: `bastardkb/charybdis/3x5/fleetsing36`
+- Keymap: `fleetsing`
 
-If you wish to manually manage `qmk_firmware` using git within the userspace repository, you can add `qmk_firmware` as a submodule in the userspace directory instead. GitHub Actions will automatically use the submodule at the pinned revision if it exists, otherwise it will use the default latest revision of `qmk_firmware` from the main repository.
+Build targets are tracked in `qmk.json`, which is the source of truth for this
+userspace's active compile targets.
 
-This can also be used to control which fork is used, though only upstream `qmk_firmware` will have support for external userspace until other manufacturers update their forks.
+## Key Paths
 
-1. (First time only) `git submodule add https://github.com/qmk/qmk_firmware.git`
-1. (To update) `git submodule update --init --recursive`
-1. Commit your changes to your userspace repository
+- Keymap:
+  `keyboards/bastardkb/charybdis/3x5/fleetsing36/keymaps/fleetsing/`
+- Shared userspace:
+  `users/fleetsing/`
+- Layout-specific helpers:
+  `users/fleetsing/layouts/charybdis_3x5/`
+
+## Build And Verify
+
+From the workspace root:
+
+- Configure overlay:
+  `qmk config user.overlay_dir="$(realpath qmk_userspace)"`
+- Health check:
+  `qmk userspace-doctor`
+- Primary compile:
+  `qmk compile -kb bastardkb/charybdis/3x5/fleetsing36 -km fleetsing`
+- Compile the configured userspace targets:
+  `qmk userspace-compile -c -p`
+
+## Notes
+
+- Historical `.hex` and `.uf2` files in the repo root are generated artifacts.
+  Do not treat them as the source of truth for active targets.
+- The firmware/userspace split is intentional. Hardware and board-conversion
+  details belong in `../qmk_firmware/`; personal behavior belongs here.
+- This README is intentionally the front door, not the whole manual. As the
+  workspace grows, keyboard-specific pages under `docs/` can carry richer
+  descriptions, layer notes, photos, and diagrams.
