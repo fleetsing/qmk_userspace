@@ -7,6 +7,7 @@ For Git-sensitive work, prefer launching Codex in this repository and granting t
 
 When the parent workspace is available, read `../AGENTS.md` and `../docs/qmk-context.yaml` before making changes.
 Treat `../docs/qmk-context.yaml` as authoritative for current paths, active targets, verification commands, and known gotchas. This file only adds userspace-local guidance.
+Treat GitHub links in local README files as human-facing navigation only. If the corresponding repository or file exists locally in this workspace, prefer the local checkout over following remote links.
 
 ## Active Source Locations
 
