@@ -87,6 +87,8 @@ bool fleetsing_numword_is_active(void);
 uint16_t fleetsing_numword_idle_remaining(void);
 bool fleetsing_numword_display_is_active(void);
 uint16_t fleetsing_numword_display_remaining(void);
+void fleetsing_display_post_init(void);
+void fleetsing_display_sync_task(void);
 bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
 void fleetsing_numword_task(void);
 void fleetsing_autoshift_haptic_matrix_scan(void);

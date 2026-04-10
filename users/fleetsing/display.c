@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef SPLIT_TRANSACTION_IDS_USER
+#    include "transactions.h"
+#endif
+
 #ifndef CHARYBDIS_DRAGSCROLL_DPI
 #    define CHARYBDIS_DRAGSCROLL_DPI 100
 #endif
@@ -26,6 +30,11 @@
 #define FLEETSING_OLED_OFFHAND_TOP_PAD 2
 #define FLEETSING_OLED_TEMP_TOP_PAD 2
 
+typedef struct {
+    char title[10];
+    char value[FLEETSING_OLED_VALUE_SIZE];
+} fleetsing_oled_overlay_item_t;
+
 #ifdef DYNAMIC_MACRO_ENABLE
 /*
  * The macro layer uses QMK's two built-in dynamic macro slots.
@@ -47,6 +56,25 @@ static fleetsing_macro_status_t fleetsing_macro_status       = FLEETSING_MACRO_I
 static uint32_t                 fleetsing_macro_status_timer = 0;
 
 static void fleetsing_refresh_macro_status(void);
+#endif
+
+#ifdef SPLIT_TRANSACTION_IDS_USER
+typedef struct {
+    uint8_t                       layer;
+    uint8_t                       locked_layers_mask;
+    uint8_t                       pointer_flags;
+    uint16_t                      dpi;
+    uint8_t                       os_mode;
+    uint8_t                       macro_status;
+    uint8_t                       host_leds;
+    uint8_t                       oneshot_mods;
+    uint8_t                       oneshot_locked_mods;
+    bool                          overlay_active;
+    uint8_t                       overlay_count;
+    fleetsing_oled_overlay_item_t overlay_items[FLEETSING_OLED_OVERLAY_MAX_ITEMS];
+} fleetsing_display_sync_t;
+
+static fleetsing_display_sync_t fleetsing_display_remote_state = {0};
 #endif
 
 /*
@@ -113,6 +141,10 @@ static void fleetsing_format_os_mode(char *buffer, size_t size) {
     snprintf(buffer, size, "%s", fleetsing_get_os_mode_name());
 }
 
+static void fleetsing_format_os_mode_state(uint8_t mode, char *buffer, size_t size) {
+    snprintf(buffer, size, "%s", mode == FLEETSING_OS_PC ? "PC" : "MAC");
+}
+
 /*
  * Render a field as a three-line block:
  * 1. label
@@ -146,6 +178,10 @@ static void fleetsing_format_host_leds(char *buffer, size_t size) {
     snprintf(buffer, size, "%c%c%c", led_state.num_lock ? 'N' : '-', led_state.caps_lock ? 'C' : '-', led_state.scroll_lock ? 'S' : '-');
 }
 
+static void fleetsing_format_host_leds_state(uint8_t led_bits, char *buffer, size_t size) {
+    snprintf(buffer, size, "%c%c%c", led_bits & 0x01 ? 'N' : '-', led_bits & 0x02 ? 'C' : '-', led_bits & 0x04 ? 'S' : '-');
+}
+
 /*
  * Friendly left/right wording is easier to scan on the pointer page and in
  * transient overlays than the compact single-letter form.
@@ -169,6 +205,10 @@ static void fleetsing_format_oneshot_mods(char *buffer, size_t size) {
     const uint8_t locked_mods = get_oneshot_locked_mods();
 
     /* Show one-shot mods as Shift/Ctrl/Alt/GUI, with case indicating armed vs locked. */
+    snprintf(buffer, size, "%c%c%c%c", locked_mods & MOD_MASK_SHIFT ? 'S' : active_mods & MOD_MASK_SHIFT ? 's' : '-', locked_mods & MOD_MASK_CTRL ? 'C' : active_mods & MOD_MASK_CTRL ? 'c' : '-', locked_mods & MOD_MASK_ALT ? 'A' : active_mods & MOD_MASK_ALT ? 'a' : '-', locked_mods & MOD_MASK_GUI ? 'G' : active_mods & MOD_MASK_GUI ? 'g' : '-');
+}
+
+static void fleetsing_format_oneshot_mods_state(uint8_t active_mods, uint8_t locked_mods, char *buffer, size_t size) {
     snprintf(buffer, size, "%c%c%c%c", locked_mods & MOD_MASK_SHIFT ? 'S' : active_mods & MOD_MASK_SHIFT ? 's' : '-', locked_mods & MOD_MASK_CTRL ? 'C' : active_mods & MOD_MASK_CTRL ? 'c' : '-', locked_mods & MOD_MASK_ALT ? 'A' : active_mods & MOD_MASK_ALT ? 'a' : '-', locked_mods & MOD_MASK_GUI ? 'G' : active_mods & MOD_MASK_GUI ? 'g' : '-');
 }
 
@@ -197,6 +237,58 @@ static void fleetsing_format_locked_layers(char *buffer, size_t size) {
         offset += snprintf(buffer + offset, size - offset, "%sPTR", offset ? "+" : "");
     }
     if (is_layer_locked(LAYER_MACRO)) {
+        offset += snprintf(buffer + offset, size - offset, "%sMAC", offset ? "+" : "");
+    }
+
+    if (offset == 0) {
+        snprintf(buffer, size, "-");
+    }
+}
+
+static uint8_t fleetsing_locked_layers_mask(void) {
+    uint8_t mask = 0;
+
+    if (is_layer_locked(LAYER_NUMBERS)) {
+        mask |= (uint8_t)1 << 0;
+    }
+    if (is_layer_locked(LAYER_NAVIGATION)) {
+        mask |= (uint8_t)1 << 1;
+    }
+    if (is_layer_locked(LAYER_FUNCTION)) {
+        mask |= (uint8_t)1 << 2;
+    }
+    if (is_layer_locked(LAYER_MEDIA)) {
+        mask |= (uint8_t)1 << 3;
+    }
+    if (is_layer_locked(LAYER_POINTER)) {
+        mask |= (uint8_t)1 << 4;
+    }
+    if (is_layer_locked(LAYER_MACRO)) {
+        mask |= (uint8_t)1 << 5;
+    }
+
+    return mask;
+}
+
+static void fleetsing_format_locked_layers_state(uint8_t mask, char *buffer, size_t size) {
+    size_t offset = 0;
+
+    if (mask & ((uint8_t)1 << 0)) {
+        offset += snprintf(buffer + offset, size - offset, "%sNUM", offset ? "+" : "");
+    }
+    if (mask & ((uint8_t)1 << 1)) {
+        offset += snprintf(buffer + offset, size - offset, "%sNAV", offset ? "+" : "");
+    }
+    if (mask & ((uint8_t)1 << 2)) {
+        offset += snprintf(buffer + offset, size - offset, "%sFN", offset ? "+" : "");
+    }
+    if (mask & ((uint8_t)1 << 3)) {
+        offset += snprintf(buffer + offset, size - offset, "%sMEDIA", offset ? "+" : "");
+    }
+    if (mask & ((uint8_t)1 << 4)) {
+        offset += snprintf(buffer + offset, size - offset, "%sPTR", offset ? "+" : "");
+    }
+    if (mask & ((uint8_t)1 << 5)) {
         offset += snprintf(buffer + offset, size - offset, "%sMAC", offset ? "+" : "");
     }
 
@@ -244,6 +336,36 @@ static void fleetsing_format_pointer_mode(char *buffer, size_t size) {
     fleetsing_format_pointer_flags(flags, sizeof(flags));
     fleetsing_format_scroll_side(side, sizeof(side));
     snprintf(buffer, size, "%s %s", flags, side);
+}
+
+static uint8_t fleetsing_pointer_flags_state(void) {
+    uint8_t flags = 0;
+#ifdef POINTING_DEVICE_ENABLE
+    if (charybdis_get_pointer_sniping_enabled()) {
+        flags |= (uint8_t)1 << 0;
+    }
+    if (charybdis_get_pointer_dragscroll_enabled()) {
+        flags |= (uint8_t)1 << 1;
+    }
+#endif
+#ifdef POINTING_DEVICE_COMBINED
+    if (fleetsing_get_scroll_side() == FLEETSING_SCROLL_SIDE_RIGHT) {
+        flags |= (uint8_t)1 << 2;
+    }
+#endif
+    return flags;
+}
+
+static void fleetsing_format_pointer_mode_state(uint8_t flags, char *buffer, size_t size) {
+    snprintf(buffer, size, "%c%c %c", flags & ((uint8_t)1 << 0) ? 'S' : '-', flags & ((uint8_t)1 << 1) ? 'D' : '-', flags & ((uint8_t)1 << 2) ? 'R' : 'L');
+}
+
+static const char *fleetsing_scroll_side_name_state(uint8_t flags) {
+#ifdef POINTING_DEVICE_COMBINED
+    return flags & ((uint8_t)1 << 2) ? "RIGHT" : "LEFT";
+#else
+    return "-";
+#endif
 }
 
 /*
@@ -375,6 +497,30 @@ static void fleetsing_format_macro_page_action(char *buffer, size_t size) {
 #endif
 }
 
+static void fleetsing_format_macro_page_action_state(uint8_t status, char *buffer, size_t size) {
+#ifdef DYNAMIC_MACRO_ENABLE
+    switch ((fleetsing_macro_status_t)status) {
+        case FLEETSING_MACRO_REC1:
+        case FLEETSING_MACRO_REC2:
+            snprintf(buffer, size, "RECORD");
+            break;
+        case FLEETSING_MACRO_PLAY1:
+        case FLEETSING_MACRO_PLAY2:
+            snprintf(buffer, size, "PLAY");
+            break;
+        case FLEETSING_MACRO_SAVE1:
+        case FLEETSING_MACRO_SAVE2:
+            snprintf(buffer, size, "STORED");
+            break;
+        default:
+            snprintf(buffer, size, "-");
+            break;
+    }
+#else
+    snprintf(buffer, size, "-");
+#endif
+}
+
 /*
  * Slot numbers are useful on the macro page because the base REC1/PLAY2 text
  * is concise but easy to skim past during quick modal work.
@@ -382,6 +528,28 @@ static void fleetsing_format_macro_page_action(char *buffer, size_t size) {
 static void fleetsing_format_macro_page_slot(char *buffer, size_t size) {
 #ifdef DYNAMIC_MACRO_ENABLE
     switch (fleetsing_macro_status) {
+        case FLEETSING_MACRO_REC1:
+        case FLEETSING_MACRO_PLAY1:
+        case FLEETSING_MACRO_SAVE1:
+            snprintf(buffer, size, "1");
+            break;
+        case FLEETSING_MACRO_REC2:
+        case FLEETSING_MACRO_PLAY2:
+        case FLEETSING_MACRO_SAVE2:
+            snprintf(buffer, size, "2");
+            break;
+        default:
+            snprintf(buffer, size, "-");
+            break;
+    }
+#else
+    snprintf(buffer, size, "-");
+#endif
+}
+
+static void fleetsing_format_macro_page_slot_state(uint8_t status, char *buffer, size_t size) {
+#ifdef DYNAMIC_MACRO_ENABLE
+    switch ((fleetsing_macro_status_t)status) {
         case FLEETSING_MACRO_REC1:
         case FLEETSING_MACRO_PLAY1:
         case FLEETSING_MACRO_SAVE1:
@@ -432,15 +600,34 @@ static bool fleetsing_format_alert(char *buffer, size_t size) {
     return false;
 }
 
+static bool fleetsing_format_alert_state(uint8_t locked_layers_mask, uint8_t oneshot_mods, uint8_t oneshot_locked_mods, uint8_t host_leds, char *buffer, size_t size) {
+    char value[FLEETSING_OLED_VALUE_SIZE];
+
+    fleetsing_format_locked_layers_state(locked_layers_mask, value, sizeof(value));
+    if (strcmp(value, "-") != 0) {
+        snprintf(buffer, size, "LOCK %s", value);
+        return true;
+    }
+
+    if (oneshot_locked_mods != 0) {
+        fleetsing_format_oneshot_mods_state(oneshot_mods, oneshot_locked_mods, value, sizeof(value));
+        snprintf(buffer, size, "OSM %s", value);
+        return true;
+    }
+
+    if (host_leds & 0x02) {
+        snprintf(buffer, size, "CAPS ON");
+        return true;
+    }
+
+    snprintf(buffer, size, "-");
+    return false;
+}
+
 /*
  * Short-lived change overlays acknowledge mode transitions without making the
  * steady-state dashboards permanently denser.
  */
-typedef struct {
-    char title[10];
-    char value[FLEETSING_OLED_VALUE_SIZE];
-} fleetsing_oled_overlay_item_t;
-
 typedef struct {
     bool                          initialized;
     bool                          active;
@@ -479,6 +666,11 @@ static void fleetsing_append_oled_overlay_item(const char *title, const char *va
 }
 
 static bool fleetsing_overlay_is_active(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    if (!is_keyboard_master() && !is_keyboard_left()) {
+        return fleetsing_display_remote_state.overlay_active;
+    }
+#endif
     if (!fleetsing_oled_overlay_state.active) {
         return false;
     }
@@ -648,6 +840,32 @@ static void fleetsing_format_macro_status(char *buffer, size_t size) {
     }
 }
 
+static void fleetsing_format_macro_status_state(uint8_t status, char *buffer, size_t size) {
+    switch ((fleetsing_macro_status_t)status) {
+        case FLEETSING_MACRO_REC1:
+            snprintf(buffer, size, "REC1");
+            break;
+        case FLEETSING_MACRO_REC2:
+            snprintf(buffer, size, "REC2");
+            break;
+        case FLEETSING_MACRO_PLAY1:
+            snprintf(buffer, size, "PLAY1");
+            break;
+        case FLEETSING_MACRO_PLAY2:
+            snprintf(buffer, size, "PLAY2");
+            break;
+        case FLEETSING_MACRO_SAVE1:
+            snprintf(buffer, size, "SAVE1");
+            break;
+        case FLEETSING_MACRO_SAVE2:
+            snprintf(buffer, size, "SAVE2");
+            break;
+        default:
+            snprintf(buffer, size, "READY");
+            break;
+    }
+}
+
 /* Start recording into macro slot 1 or 2 and reflect that immediately on screen. */
 bool dynamic_macro_record_start_user(int8_t direction) {
     dynamic_macro_led_blink();
@@ -685,6 +903,11 @@ bool dynamic_macro_play_user(int8_t direction) {
 static void fleetsing_format_macro_status(char *buffer, size_t size) {
     snprintf(buffer, size, "-");
 }
+
+static void fleetsing_format_macro_status_state(uint8_t status, char *buffer, size_t size) {
+    (void)status;
+    snprintf(buffer, size, "-");
+}
 #endif
 
 /*
@@ -706,6 +929,21 @@ static void fleetsing_render_master_panel(void) {
 
     snprintf(value, sizeof(value), "%u", fleetsing_get_active_pointer_dpi());
     fleetsing_render_pair("DPI", value);
+}
+
+static void fleetsing_render_left_panel_remote(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    char value[FLEETSING_OLED_VALUE_SIZE];
+
+    fleetsing_render_top_padding(FLEETSING_OLED_MASTER_TOP_PAD);
+    fleetsing_render_pair("Layer", fleetsing_layer_name(fleetsing_display_remote_state.layer));
+    fleetsing_format_locked_layers_state(fleetsing_display_remote_state.locked_layers_mask, value, sizeof(value));
+    fleetsing_render_pair("Lock", value);
+    fleetsing_format_pointer_mode_state(fleetsing_display_remote_state.pointer_flags, value, sizeof(value));
+    fleetsing_render_pair("Ptr", value);
+    snprintf(value, sizeof(value), "%u", fleetsing_display_remote_state.dpi);
+    fleetsing_render_pair("DPI", value);
+#endif
 }
 
 /*
@@ -730,6 +968,19 @@ static void fleetsing_render_pointer_panel(void) {
     fleetsing_render_pair("DPI", value);
 }
 
+static void fleetsing_render_pointer_panel_remote(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    char value[FLEETSING_OLED_VALUE_SIZE];
+
+    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
+    fleetsing_render_pair("Snip", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 0)) != 0));
+    fleetsing_render_pair("Drag", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 1)) != 0));
+    fleetsing_render_pair("Scroll", fleetsing_scroll_side_name_state(fleetsing_display_remote_state.pointer_flags));
+    snprintf(value, sizeof(value), "%u", fleetsing_display_remote_state.dpi);
+    fleetsing_render_pair("DPI", value);
+#endif
+}
+
 /*
  * Macro actions use a dedicated temporary offhand page because they are
  * explicit modal tasks that benefit from more context than the compact field.
@@ -746,6 +997,20 @@ static void fleetsing_render_macro_panel(void) {
 
     fleetsing_format_macro_page_slot(value, sizeof(value));
     fleetsing_render_pair("Slot", value);
+}
+
+static void fleetsing_render_macro_panel_remote(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    char value[FLEETSING_OLED_VALUE_SIZE];
+
+    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
+    fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, value, sizeof(value));
+    fleetsing_render_pair("Macro", value);
+    fleetsing_format_macro_page_action_state(fleetsing_display_remote_state.macro_status, value, sizeof(value));
+    fleetsing_render_pair("State", value);
+    fleetsing_format_macro_page_slot_state(fleetsing_display_remote_state.macro_status, value, sizeof(value));
+    fleetsing_render_pair("Slot", value);
+#endif
 }
 
 /*
@@ -779,6 +1044,18 @@ static void fleetsing_render_overlay(void) {
     for (uint8_t i = 0; i < fleetsing_oled_overlay_state.count; ++i) {
         fleetsing_render_pair(fleetsing_oled_overlay_state.items[i].title, fleetsing_oled_overlay_state.items[i].value);
     }
+}
+
+static void fleetsing_render_overlay_remote(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
+    oled_write_ln("Changed", false);
+    oled_write_ln("", false);
+
+    for (uint8_t i = 0; i < fleetsing_display_remote_state.overlay_count; ++i) {
+        fleetsing_render_pair(fleetsing_display_remote_state.overlay_items[i].title, fleetsing_display_remote_state.overlay_items[i].value);
+    }
+#endif
 }
 
 /*
@@ -839,6 +1116,114 @@ static void fleetsing_render_offhand_panel(void) {
     fleetsing_render_pair("Host", value);
 }
 
+static void fleetsing_render_right_panel_remote(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    char value[FLEETSING_OLED_VALUE_SIZE];
+
+    if ((fleetsing_macro_page_is_active() || fleetsing_display_remote_state.macro_status != FLEETSING_MACRO_IDLE)) {
+        fleetsing_render_macro_panel_remote();
+        return;
+    }
+
+    if (fleetsing_pointer_page_is_active()) {
+        fleetsing_render_pointer_panel_remote();
+        return;
+    }
+
+    if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
+        fleetsing_render_numword_panel();
+        return;
+    }
+
+    fleetsing_render_top_padding(FLEETSING_OLED_OFFHAND_TOP_PAD);
+
+    if (fleetsing_format_alert_state(fleetsing_display_remote_state.locked_layers_mask, fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, fleetsing_display_remote_state.host_leds, value, sizeof(value))) {
+        fleetsing_render_pair("Alert", value);
+        fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, value, sizeof(value));
+        fleetsing_render_pair("OS", value);
+        fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, value, sizeof(value));
+        fleetsing_render_pair("Host", value);
+        return;
+    }
+
+    fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, value, sizeof(value));
+    fleetsing_render_pair("OS", value);
+    fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, value, sizeof(value));
+    fleetsing_render_pair("Macro", value);
+    fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, value, sizeof(value));
+    fleetsing_render_pair("Host", value);
+#endif
+}
+
+#ifdef SPLIT_TRANSACTION_IDS_USER
+static uint8_t fleetsing_host_led_state_bits(void) {
+    led_t led_state = host_keyboard_led_state();
+    return (led_state.num_lock ? 0x01 : 0) | (led_state.caps_lock ? 0x02 : 0) | (led_state.scroll_lock ? 0x04 : 0);
+}
+
+static void fleetsing_fill_display_sync_state(fleetsing_display_sync_t *state) {
+    state->layer              = get_highest_layer(layer_state);
+    state->locked_layers_mask = fleetsing_locked_layers_mask();
+    state->pointer_flags      = fleetsing_pointer_flags_state();
+    state->dpi                = fleetsing_get_active_pointer_dpi();
+    state->os_mode            = (uint8_t)fleetsing_get_os_mode();
+    state->macro_status       = (uint8_t)fleetsing_macro_status;
+    state->host_leds          = fleetsing_host_led_state_bits();
+    state->oneshot_mods       = get_oneshot_mods();
+    state->oneshot_locked_mods = get_oneshot_locked_mods();
+    state->overlay_active     = fleetsing_oled_overlay_state.active;
+    state->overlay_count      = fleetsing_oled_overlay_state.count;
+
+    for (uint8_t i = 0; i < FLEETSING_OLED_OVERLAY_MAX_ITEMS; ++i) {
+        if (i < fleetsing_oled_overlay_state.count) {
+            memcpy(&state->overlay_items[i], &fleetsing_oled_overlay_state.items[i], sizeof(state->overlay_items[i]));
+        } else {
+            memset(&state->overlay_items[i], 0, sizeof(state->overlay_items[i]));
+        }
+    }
+}
+
+static void fleetsing_display_sync_handler(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
+    (void)target2initiator_buffer_size;
+    (void)target2initiator_buffer;
+
+    if (initiator2target_buffer_size == sizeof(fleetsing_display_remote_state)) {
+        memcpy(&fleetsing_display_remote_state, initiator2target_buffer, sizeof(fleetsing_display_remote_state));
+    }
+}
+
+void fleetsing_display_post_init(void) {
+    transaction_register_rpc(RPC_ID_USER_DISPLAY_SYNC, fleetsing_display_sync_handler);
+}
+
+void fleetsing_display_sync_task(void) {
+    if (!is_keyboard_master()) {
+        return;
+    }
+
+    static fleetsing_display_sync_t last_sent_state = {0};
+    static uint32_t                 last_sync       = 0;
+    fleetsing_display_sync_t        current_state   = {0};
+
+    fleetsing_fill_display_sync_state(&current_state);
+
+    if (!memcmp(&current_state, &last_sent_state, sizeof(current_state)) && timer_elapsed32(last_sync) <= 500) {
+        return;
+    }
+
+    if (transaction_rpc_send(RPC_ID_USER_DISPLAY_SYNC, sizeof(current_state), &current_state)) {
+        memcpy(&last_sent_state, &current_state, sizeof(current_state));
+        last_sync = timer_read32();
+    }
+}
+#else
+void fleetsing_display_post_init(void) {
+}
+
+void fleetsing_display_sync_task(void) {
+}
+#endif
+
 /* The displays are physically mounted upside down relative to QMK defaults. */
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return OLED_ROTATION_180;
@@ -896,6 +1281,7 @@ static uint32_t fleetsing_display_idle_elapsed(void) {
  */
 bool oled_task_user(void) {
     char snapshot[FLEETSING_OLED_SNAPSHOT_SIZE];
+    bool left_half = is_keyboard_left();
 
     fleetsing_update_oled_overlay();
 
@@ -923,11 +1309,13 @@ bool oled_task_user(void) {
         return false;
     }
 
-    if (!is_keyboard_master() && fleetsing_overlay_is_active()) {
-        size_t offset = snprintf(snapshot, sizeof(snapshot), "X");
+    if (!left_half && fleetsing_overlay_is_active()) {
+        size_t  offset = snprintf(snapshot, sizeof(snapshot), "X");
+        uint8_t count  = is_keyboard_master() ? fleetsing_oled_overlay_state.count : fleetsing_display_remote_state.overlay_count;
 
-        for (uint8_t i = 0; i < fleetsing_oled_overlay_state.count && offset < sizeof(snapshot); ++i) {
-            offset += snprintf(snapshot + offset, sizeof(snapshot) - offset, "|%s|%s", fleetsing_oled_overlay_state.items[i].title, fleetsing_oled_overlay_state.items[i].value);
+        for (uint8_t i = 0; i < count && offset < sizeof(snapshot); ++i) {
+            const fleetsing_oled_overlay_item_t *item = is_keyboard_master() ? &fleetsing_oled_overlay_state.items[i] : &fleetsing_display_remote_state.overlay_items[i];
+            offset += snprintf(snapshot + offset, sizeof(snapshot) - offset, "|%s|%s", item->title, item->value);
         }
 
         if (!fleetsing_update_oled_snapshot(snapshot)) {
@@ -936,7 +1324,11 @@ bool oled_task_user(void) {
 
         oled_clear();
         oled_set_cursor(0, 0);
-        fleetsing_render_overlay();
+        if (is_keyboard_master()) {
+            fleetsing_render_overlay();
+        } else {
+            fleetsing_render_overlay_remote();
+        }
         return false;
     }
 
@@ -952,14 +1344,22 @@ bool oled_task_user(void) {
         oled_clear();
         oled_set_cursor(0, 0);
         fleetsing_render_numword_panel();
-    } else if (is_keyboard_master()) {
+    } else if (left_half) {
         char field_a[FLEETSING_OLED_VALUE_SIZE];
         char field_b[FLEETSING_OLED_VALUE_SIZE];
         char field_c[FLEETSING_OLED_VALUE_SIZE];
-        fleetsing_format_locked_layers(field_a, sizeof(field_a));
-        fleetsing_format_pointer_mode(field_b, sizeof(field_b));
-        snprintf(field_c, sizeof(field_c), "%u", fleetsing_get_active_pointer_dpi());
-        snprintf(snapshot, sizeof(snapshot), "M|%s|%s|%s|%s", fleetsing_layer_name(get_highest_layer(layer_state)), field_a, field_b, field_c);
+
+        if (is_keyboard_master()) {
+            fleetsing_format_locked_layers(field_a, sizeof(field_a));
+            fleetsing_format_pointer_mode(field_b, sizeof(field_b));
+            snprintf(field_c, sizeof(field_c), "%u", fleetsing_get_active_pointer_dpi());
+            snprintf(snapshot, sizeof(snapshot), "L|%s|%s|%s|%s", fleetsing_layer_name(get_highest_layer(layer_state)), field_a, field_b, field_c);
+        } else {
+            fleetsing_format_locked_layers_state(fleetsing_display_remote_state.locked_layers_mask, field_a, sizeof(field_a));
+            fleetsing_format_pointer_mode_state(fleetsing_display_remote_state.pointer_flags, field_b, sizeof(field_b));
+            snprintf(field_c, sizeof(field_c), "%u", fleetsing_display_remote_state.dpi);
+            snprintf(snapshot, sizeof(snapshot), "L|%s|%s|%s|%s", fleetsing_layer_name(fleetsing_display_remote_state.layer), field_a, field_b, field_c);
+        }
 
         if (!fleetsing_update_oled_snapshot(snapshot)) {
             return false;
@@ -967,33 +1367,59 @@ bool oled_task_user(void) {
 
         oled_clear();
         oled_set_cursor(0, 0);
-        fleetsing_render_master_panel();
+        if (is_keyboard_master()) {
+            fleetsing_render_master_panel();
+        } else {
+            fleetsing_render_left_panel_remote();
+        }
     } else {
         char alert[FLEETSING_OLED_VALUE_SIZE];
         char os[FLEETSING_OLED_VALUE_SIZE];
         char field_c[FLEETSING_OLED_VALUE_SIZE];
         char host[FLEETSING_OLED_VALUE_SIZE];
-        bool has_alert = fleetsing_format_alert(alert, sizeof(alert));
+        bool has_alert = is_keyboard_master() ? fleetsing_format_alert(alert, sizeof(alert))
+                                              : fleetsing_format_alert_state(fleetsing_display_remote_state.locked_layers_mask, fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, fleetsing_display_remote_state.host_leds, alert, sizeof(alert));
 
         if (fleetsing_macro_page_is_active()) {
-            fleetsing_format_macro_status(alert, sizeof(alert));
-            fleetsing_format_macro_page_action(os, sizeof(os));
-            fleetsing_format_macro_page_slot(field_c, sizeof(field_c));
-            snprintf(snapshot, sizeof(snapshot), "O|M|%s|%s|%s", alert, os, field_c);
+            if (is_keyboard_master()) {
+                fleetsing_format_macro_status(alert, sizeof(alert));
+                fleetsing_format_macro_page_action(os, sizeof(os));
+                fleetsing_format_macro_page_slot(field_c, sizeof(field_c));
+            } else {
+                fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, alert, sizeof(alert));
+                fleetsing_format_macro_page_action_state(fleetsing_display_remote_state.macro_status, os, sizeof(os));
+                fleetsing_format_macro_page_slot_state(fleetsing_display_remote_state.macro_status, field_c, sizeof(field_c));
+            }
+            snprintf(snapshot, sizeof(snapshot), "R|M|%s|%s|%s", alert, os, field_c);
         } else if (fleetsing_pointer_page_is_active()) {
-            snprintf(snapshot, sizeof(snapshot), "O|P|%s|%s|%s|%u", fleetsing_toggle_name(charybdis_get_pointer_sniping_enabled()), fleetsing_toggle_name(charybdis_get_pointer_dragscroll_enabled()), fleetsing_scroll_side_name(), fleetsing_get_active_pointer_dpi());
+            if (is_keyboard_master()) {
+                snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%s|%u", fleetsing_toggle_name(charybdis_get_pointer_sniping_enabled()), fleetsing_toggle_name(charybdis_get_pointer_dragscroll_enabled()), fleetsing_scroll_side_name(), fleetsing_get_active_pointer_dpi());
+            } else {
+                snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%s|%u", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 0)) != 0), fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 1)) != 0), fleetsing_scroll_side_name_state(fleetsing_display_remote_state.pointer_flags), fleetsing_display_remote_state.dpi);
+            }
         } else if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
             fleetsing_format_numword_remaining(field_c, sizeof(field_c));
-            snprintf(snapshot, sizeof(snapshot), "O|W|%s", field_c);
+            snprintf(snapshot, sizeof(snapshot), "R|W|%s", field_c);
         } else if (has_alert) {
-            fleetsing_format_os_mode(field_c, sizeof(field_c));
-            fleetsing_format_host_leds(host, sizeof(host));
-            snprintf(snapshot, sizeof(snapshot), "O|A|%s|%s|%s", alert, field_c, host);
+            if (is_keyboard_master()) {
+                fleetsing_format_os_mode(field_c, sizeof(field_c));
+                fleetsing_format_host_leds(host, sizeof(host));
+            } else {
+                fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, field_c, sizeof(field_c));
+                fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, host, sizeof(host));
+            }
+            snprintf(snapshot, sizeof(snapshot), "R|A|%s|%s|%s", alert, field_c, host);
         } else {
-            fleetsing_format_os_mode(os, sizeof(os));
-            fleetsing_format_macro_status(field_c, sizeof(field_c));
-            fleetsing_format_host_leds(host, sizeof(host));
-            snprintf(snapshot, sizeof(snapshot), "O|N|%s|%s|%s", os, field_c, host);
+            if (is_keyboard_master()) {
+                fleetsing_format_os_mode(os, sizeof(os));
+                fleetsing_format_macro_status(field_c, sizeof(field_c));
+                fleetsing_format_host_leds(host, sizeof(host));
+            } else {
+                fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, os, sizeof(os));
+                fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, field_c, sizeof(field_c));
+                fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, host, sizeof(host));
+            }
+            snprintf(snapshot, sizeof(snapshot), "R|N|%s|%s|%s", os, field_c, host);
         }
 
         if (!fleetsing_update_oled_snapshot(snapshot)) {
@@ -1002,7 +1428,11 @@ bool oled_task_user(void) {
 
         oled_clear();
         oled_set_cursor(0, 0);
-        fleetsing_render_offhand_panel();
+        if (is_keyboard_master()) {
+            fleetsing_render_offhand_panel();
+        } else {
+            fleetsing_render_right_panel_remote();
+        }
     }
 
     return false;

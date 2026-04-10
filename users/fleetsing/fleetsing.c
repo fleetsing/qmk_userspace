@@ -417,6 +417,7 @@ void matrix_scan_user(void) {
 #ifdef SPLIT_TRANSACTION_IDS_USER
     fleetsing_numword_sync_task();
 #endif
+    fleetsing_display_sync_task();
     /* Poll for delayed Auto Shift haptic feedback without blocking key processing. */
     fleetsing_autoshift_haptic_matrix_scan();
 }
@@ -436,6 +437,7 @@ void keyboard_post_init_user(void) {
 #ifdef SPLIT_TRANSACTION_IDS_USER
     transaction_register_rpc(RPC_ID_USER_NUMWORD_SYNC, fleetsing_numword_sync_handler);
 #endif
+    fleetsing_display_post_init();
 
 #ifdef HAPTIC_ENABLE
     if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {

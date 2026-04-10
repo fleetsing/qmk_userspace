@@ -39,8 +39,8 @@
 #define COMBO_TERM_PER_COMBO
 #define COMBO_MUST_TAP_PER_COMBO
 
-/* Reserve one userspace split-RPC id for synced NumWord OLED state. */
-#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC
+/* Reserve userspace split-RPC ids for synced OLED-facing runtime state. */
+#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC, RPC_ID_USER_DISPLAY_SYNC
 
 /*
  * NumWord is a smart temporary number-entry mode layered above the base layer.
