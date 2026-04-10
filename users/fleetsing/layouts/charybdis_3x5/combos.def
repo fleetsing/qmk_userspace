@@ -25,6 +25,7 @@ enum combos {
     L42_L41,
     L43_L41,
     L43_L42,
+    L43_R43,
 
     R23_R24,
     R34_R33,
@@ -62,6 +63,7 @@ const uint16_t PROGMEM L23_L22_COMBO[] = {_L23, _L22, COMBO_END};
 const uint16_t PROGMEM L42_L41_COMBO[] = {_L42, _L41, COMBO_END};
 const uint16_t PROGMEM L43_L41_COMBO[] = {_L43, _L41, COMBO_END};
 const uint16_t PROGMEM L43_L42_COMBO[] = {_L43, _L42, COMBO_END};
+const uint16_t PROGMEM L43_R43_COMBO[] = {_L43, _R43, COMBO_END};
 
 const uint16_t PROGMEM R23_R24_COMBO[] = {_R23, _R24, COMBO_END};
 const uint16_t PROGMEM R34_R33_COMBO[] = {_R33, _R34, COMBO_END};
@@ -98,6 +100,7 @@ combo_t key_combos[] = {
     [L42_L41] = COMBO(L42_L41_COMBO, MS_BTN3),
     [L43_L41] = COMBO(L43_L41_COMBO, QK_REP),
     [L43_L42] = COMBO(L43_L42_COMBO, MS_BTN2),
+    [L43_R43] = COMBO(L43_R43_COMBO, NUMWORD),
 
     [R23_R24] = COMBO(R23_R24_COMBO, FI_DOT),
     [R34_R33] = COMBO(R34_R33_COMBO, FI_QUOT),

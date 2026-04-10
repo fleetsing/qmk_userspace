@@ -1,4 +1,9 @@
 #include "fleetsing.h"
+#include <string.h>
+
+#ifdef SPLIT_TRANSACTION_IDS_USER
+#    include "transactions.h"
+#endif
 
 /*
  * This file is the generic userspace hook dispatcher.
@@ -10,6 +15,125 @@
 static fleetsing_scroll_side_t fleetsing_scroll_side = FLEETSING_SCROLL_SIDE_LEFT;
 static layer_state_t           fleetsing_locked_layers_before;
 static bool                    fleetsing_layer_lock_pending;
+static bool                    fleetsing_numword_active;
+static uint16_t                fleetsing_numword_timer;
+
+typedef struct {
+    bool     active;
+    uint16_t remaining_ms;
+} fleetsing_numword_sync_t;
+
+#ifdef SPLIT_TRANSACTION_IDS_USER
+static fleetsing_numword_sync_t fleetsing_numword_remote_state;
+#endif
+
+static void fleetsing_numword_reset_timer(void) {
+#if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
+    fleetsing_numword_timer = timer_read();
+#endif
+}
+
+static void fleetsing_numword_on(void) {
+    if (fleetsing_numword_active) {
+        fleetsing_numword_reset_timer();
+        return;
+    }
+
+    fleetsing_numword_active = true;
+    layer_on(LAYER_NUMWORD);
+    fleetsing_numword_reset_timer();
+}
+
+static void fleetsing_numword_off(void) {
+    if (!fleetsing_numword_active) {
+        return;
+    }
+
+    fleetsing_numword_active = false;
+    layer_off(LAYER_NUMWORD);
+}
+
+/*
+ * NumWord stays active for digits, editing, repeat, and the raw symbol
+ * keycodes produced by the positional combos and Auto Shift overrides.
+ */
+static bool fleetsing_numword_continue(uint16_t keycode) {
+    switch (keycode) {
+        case FI_1:
+        case FI_2:
+        case FI_3:
+        case FI_4:
+        case FI_5:
+        case FI_6:
+        case FI_7:
+        case FI_8:
+        case FI_9:
+        case FI_0:
+        case FI_DOT:
+        case FI_COMM:
+        case FI_COLN:
+        case FI_SCLN:
+        case FI_PLUS:
+        case FI_MINS:
+        case FI_UNDS:
+        case FI_SLSH:
+        case FI_ASTR:
+        case FI_PERC:
+        case FI_AMPR:
+        case FI_LPRN:
+        case FI_RPRN:
+        case FI_EQL:
+        case FI_QUOT:
+        case FI_AT:
+        case FI_BSLS:
+        case FI_LABK:
+        case FI_RABK:
+        case FI_LBRC:
+        case FI_RBRC:
+        case FI_LCBR:
+        case FI_RCBR:
+        case S(FI_4):
+        case KC_BSPC:
+        case KC_DEL:
+        case QK_REP:
+        case QK_AREP:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+static bool fleetsing_numword_should_ignore(uint16_t keycode, keyrecord_t *record) {
+    (void)record;
+
+    switch (keycode) {
+        case QK_MOMENTARY ... QK_MOMENTARY_MAX:
+        case QK_TO ... QK_TO_MAX:
+        case QK_TOGGLE_LAYER ... QK_TOGGLE_LAYER_MAX:
+        case QK_LAYER_TAP_TOGGLE ... QK_LAYER_TAP_TOGGLE_MAX:
+        case QK_ONE_SHOT_LAYER ... QK_ONE_SHOT_LAYER_MAX:
+#ifdef TRI_LAYER_ENABLE
+        case QK_TRI_LAYER_LOWER ... QK_TRI_LAYER_UPPER:
+#endif
+#ifdef LAYER_LOCK_ENABLE
+        case QK_LAYER_LOCK:
+#endif
+        case OSM(MOD_LSFT):
+        case OSM(MOD_RALT):
+        case KC_LSFT:
+        case KC_RSFT:
+        case KC_LCTL:
+        case KC_RCTL:
+        case KC_LALT:
+        case KC_RALT:
+        case KC_LGUI:
+        case KC_RGUI:
+            return true;
+        default:
+            return false;
+    }
+}
 
 static layer_state_t fleetsing_locked_layers_mask(void) {
     layer_state_t locked_layers = 0;
@@ -108,6 +232,120 @@ bool fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
+bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record) {
+    if (keycode == NUMWORD) {
+        if (record->event.pressed) {
+            if (fleetsing_numword_active) {
+                fleetsing_numword_off();
+            } else {
+                fleetsing_numword_on();
+            }
+        }
+        return false;
+    }
+
+    if (keycode == NUMLOCK) {
+        if (record->event.pressed) {
+            fleetsing_numword_off();
+            layer_lock_on(LAYER_NUMBERS);
+        }
+        return false;
+    }
+
+    if (!fleetsing_numword_active) {
+        return true;
+    }
+
+    if (!record->event.pressed || fleetsing_numword_should_ignore(keycode, record)) {
+        return true;
+    }
+
+#ifndef NO_ACTION_TAPPING
+    if (keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX && record->tap.count != 0) {
+        keycode = QK_MOD_TAP_GET_TAP_KEYCODE(keycode);
+    } else if (keycode >= QK_LAYER_TAP && keycode <= QK_LAYER_TAP_MAX && record->tap.count != 0) {
+        keycode = QK_LAYER_TAP_GET_TAP_KEYCODE(keycode);
+    }
+#endif
+
+    if (fleetsing_numword_continue(keycode)) {
+        fleetsing_numword_reset_timer();
+    } else {
+        fleetsing_numword_off();
+    }
+
+    return true;
+}
+
+bool fleetsing_numword_is_active(void) {
+    return fleetsing_numword_active;
+}
+
+uint16_t fleetsing_numword_idle_remaining(void) {
+#if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
+    if (!fleetsing_numword_active) {
+        return 0;
+    }
+
+    uint16_t elapsed = timer_elapsed(fleetsing_numword_timer);
+    return elapsed >= FLEETSING_NUMWORD_IDLE_TIMEOUT ? 0 : FLEETSING_NUMWORD_IDLE_TIMEOUT - elapsed;
+#else
+    return fleetsing_numword_active ? UINT16_MAX : 0;
+#endif
+}
+
+bool fleetsing_numword_display_is_active(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    if (!is_keyboard_master()) {
+        return fleetsing_numword_remote_state.active;
+    }
+#endif
+    return fleetsing_numword_active;
+}
+
+uint16_t fleetsing_numword_display_remaining(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    if (!is_keyboard_master()) {
+        return fleetsing_numword_remote_state.remaining_ms;
+    }
+#endif
+    return fleetsing_numword_idle_remaining();
+}
+
+#ifdef SPLIT_TRANSACTION_IDS_USER
+static void fleetsing_numword_sync_handler(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
+    (void)target2initiator_buffer_size;
+    (void)target2initiator_buffer;
+
+    if (initiator2target_buffer_size == sizeof(fleetsing_numword_remote_state)) {
+        memcpy(&fleetsing_numword_remote_state, initiator2target_buffer, sizeof(fleetsing_numword_remote_state));
+    }
+}
+
+static void fleetsing_numword_sync_task(void) {
+    if (!is_keyboard_master()) {
+        return;
+    }
+
+    static fleetsing_numword_sync_t last_sent_state = {0};
+    static uint32_t                 last_sync       = 0;
+    fleetsing_numword_sync_t        current_state   = {
+               .active       = fleetsing_numword_active,
+               .remaining_ms = fleetsing_numword_idle_remaining(),
+    };
+    bool needs_sync = memcmp(&current_state, &last_sent_state, sizeof(current_state)) != 0;
+
+    if (!needs_sync && timer_elapsed32(last_sync) <= 500) {
+        return;
+    }
+
+    if (transaction_rpc_send(RPC_ID_USER_NUMWORD_SYNC, sizeof(current_state), &current_state)) {
+        memcpy(&last_sent_state, &current_state, sizeof(current_state));
+        last_sync = timer_read32();
+    }
+}
+#endif
+
 bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     /*
      * Treat any physical key event as OLED activity.
@@ -148,6 +386,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
+    if (!fleetsing_numword_process_record(keycode, record)) {
+        return false;
+    }
+
     if (!fleetsing_os_process_record(keycode, record)) {
         return false;
     }
@@ -171,6 +413,33 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+    fleetsing_numword_task();
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    fleetsing_numword_sync_task();
+#endif
     /* Poll for delayed Auto Shift haptic feedback without blocking key processing. */
     fleetsing_autoshift_haptic_matrix_scan();
+}
+
+void fleetsing_numword_task(void) {
+#if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
+    if (fleetsing_numword_active && timer_elapsed(fleetsing_numword_timer) >= FLEETSING_NUMWORD_IDLE_TIMEOUT) {
+        fleetsing_numword_off();
+    }
+#endif
+}
+
+void keyboard_post_init_user(void) {
+    /* Start the OLED idle timer in the "recently active" state after boot. */
+    fleetsing_display_note_activity();
+
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    transaction_register_rpc(RPC_ID_USER_NUMWORD_SYNC, fleetsing_numword_sync_handler);
+#endif
+
+#ifdef HAPTIC_ENABLE
+    if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {
+        haptic_set_mode(DRV2605L_DEFAULT_MODE);
+    }
+#endif
 }

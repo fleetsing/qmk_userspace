@@ -121,14 +121,3 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 #endif
-
-void keyboard_post_init_user(void) {
-    /* Start the OLED idle timer in the "recently active" state after boot. */
-    fleetsing_display_note_activity();
-
-#ifdef HAPTIC_ENABLE
-    if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {
-        haptic_set_mode(DRV2605L_DEFAULT_MODE);
-    }
-#endif
-}

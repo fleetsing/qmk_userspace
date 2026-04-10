@@ -11,6 +11,7 @@
  */
 enum charybdis_keymap_layers {
     LAYER_BASE = 0,
+    LAYER_NUMWORD,
     LAYER_NUMBERS,
     LAYER_NAVIGATION,
     LAYER_FUNCTION,
@@ -26,7 +27,9 @@ enum custom_keycodes {
      *
      * These control userspace-owned board behavior.
      */
-    SET_MS_L = SAFE_RANGE,
+    NUMWORD = SAFE_RANGE,
+    NUMLOCK,
+    SET_MS_L,
     SET_MS_R,
     OS_MAC,
     OS_PC,
@@ -79,7 +82,13 @@ void                    fleetsing_haptic_play_event(fleetsing_haptic_event_t eve
 void fleetsing_display_note_activity(void);
 bool fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
+bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record);
+bool fleetsing_numword_is_active(void);
+uint16_t fleetsing_numword_idle_remaining(void);
+bool fleetsing_numword_display_is_active(void);
+uint16_t fleetsing_numword_display_remaining(void);
 bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
+void fleetsing_numword_task(void);
 void fleetsing_autoshift_haptic_matrix_scan(void);
 
 /*

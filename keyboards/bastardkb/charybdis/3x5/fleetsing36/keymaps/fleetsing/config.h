@@ -35,6 +35,18 @@
 
 /* Combos must be entered quickly enough to avoid conflicting with normal rolling input. */
 #define COMBO_TERM 35
+/* Selected combos override the default term or require a tap-only resolution. */
+#define COMBO_TERM_PER_COMBO
+#define COMBO_MUST_TAP_PER_COMBO
+
+/* Reserve one userspace split-RPC id for synced NumWord OLED state. */
+#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC
+
+/*
+ * NumWord is a smart temporary number-entry mode layered above the base layer.
+ * It times out automatically so a forgotten activation does not linger.
+ */
+#define FLEETSING_NUMWORD_IDLE_TIMEOUT 5000
 
 /*
  * Auto Shift timing:

@@ -67,6 +67,8 @@ static void fleetsing_refresh_macro_status(void);
  *            changed states together, such as layer + DPI on pointer-layer entry.
  * - Macro Page: a temporary offhand detail page during macro recording,
  *               playback, or recent save acknowledgement.
+ * - NumWord Page: a temporary right-side detail page that shows the synced
+ *                 NumWord timeout as both a countdown and a compact progress bar.
  */
 
 /*
@@ -79,6 +81,8 @@ static const char *fleetsing_layer_name(uint8_t layer) {
     switch (layer) {
         case LAYER_BASE:
             return "BASE";
+        case LAYER_NUMWORD:
+            return "NWD";
         case LAYER_NUMBERS:
             return "NUM";
         case LAYER_NAVIGATION:
@@ -289,6 +293,57 @@ static bool fleetsing_macro_page_is_active(void) {
     return fleetsing_macro_status != FLEETSING_MACRO_IDLE;
 #else
     return false;
+#endif
+}
+
+/*
+ * NumWord gets its own offhand page while active so the temporary timeout is
+ * visible without crowding the steady-state dashboards.
+ */
+static bool fleetsing_numword_page_is_active(void) {
+    return fleetsing_numword_display_is_active();
+}
+
+/* The NumWord timer should follow the physical right OLED, not USB mastership. */
+static bool fleetsing_numword_page_on_this_half(void) {
+    return !is_keyboard_left();
+}
+
+static void fleetsing_format_numword_remaining(char *buffer, size_t size) {
+#if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
+    uint16_t remaining = fleetsing_numword_display_remaining();
+    uint8_t  tenths    = remaining / 100;
+    snprintf(buffer, size, "%u.%us", tenths / 10, tenths % 10);
+#else
+    snprintf(buffer, size, "HOLD");
+#endif
+}
+
+static void fleetsing_format_numword_progress(char *buffer, size_t size) {
+#if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
+    enum { bar_width = 8 };
+    uint16_t remaining = fleetsing_numword_display_remaining();
+    uint8_t  filled    = (uint8_t)(((uint32_t)remaining * bar_width + (FLEETSING_NUMWORD_IDLE_TIMEOUT - 1)) / FLEETSING_NUMWORD_IDLE_TIMEOUT);
+
+    if (filled > bar_width) {
+        filled = bar_width;
+    }
+
+    if (size < (size_t)(bar_width + 3)) {
+        if (size > 0) {
+            buffer[0] = '\0';
+        }
+        return;
+    }
+
+    buffer[0] = '[';
+    for (uint8_t i = 0; i < bar_width; ++i) {
+        buffer[i + 1] = i < filled ? '#' : '-';
+    }
+    buffer[bar_width + 1] = ']';
+    buffer[bar_width + 2] = '\0';
+#else
+    snprintf(buffer, size, "[HOLD]");
 #endif
 }
 
@@ -694,6 +749,24 @@ static void fleetsing_render_macro_panel(void) {
 }
 
 /*
+ * This page lives on the physical right OLED so the timeout appears in a stable
+ * place regardless of which half currently owns USB mastership. The displayed
+ * remaining time is synced from the master-side NumWord state.
+ */
+static void fleetsing_render_numword_panel(void) {
+    char value[FLEETSING_OLED_VALUE_SIZE];
+
+    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
+    fleetsing_render_pair("NumWord", "ON");
+    fleetsing_format_numword_remaining(value, sizeof(value));
+    fleetsing_render_pair("Exit In", value);
+    fleetsing_format_numword_progress(value, sizeof(value));
+    oled_write_ln(value, false);
+    oled_write_ln("", false);
+    fleetsing_render_pair("Lock", "NUM");
+}
+
+/*
  * Overlays are intentionally simple and live on the non-master side so the
  * master display can keep its stable layer-oriented overview. When several
  * related states change together, bundle them into the same short-lived page.
@@ -726,8 +799,9 @@ static void fleetsing_render_offhand_panel(void) {
      * Priority order on the offhand side:
      * 1. dedicated temporary macro page
      * 2. pointer page while the pointer layer is active
-     * 3. warning-first status page for unusual conditions
-     * 4. normal low-churn status page
+     * 3. NumWord countdown on the physical right half while the layer is active
+     * 4. warning-first status page for unusual conditions
+     * 5. normal low-churn status page
      */
     if (fleetsing_macro_page_is_active()) {
         fleetsing_render_macro_panel();
@@ -736,6 +810,11 @@ static void fleetsing_render_offhand_panel(void) {
 
     if (fleetsing_pointer_page_is_active()) {
         fleetsing_render_pointer_panel();
+        return;
+    }
+
+    if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
+        fleetsing_render_numword_panel();
         return;
     }
 
@@ -861,7 +940,19 @@ bool oled_task_user(void) {
         return false;
     }
 
-    if (is_keyboard_master()) {
+    if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
+        char field_a[FLEETSING_OLED_VALUE_SIZE];
+        fleetsing_format_numword_remaining(field_a, sizeof(field_a));
+        snprintf(snapshot, sizeof(snapshot), "W|%s", field_a);
+
+        if (!fleetsing_update_oled_snapshot(snapshot)) {
+            return false;
+        }
+
+        oled_clear();
+        oled_set_cursor(0, 0);
+        fleetsing_render_numword_panel();
+    } else if (is_keyboard_master()) {
         char field_a[FLEETSING_OLED_VALUE_SIZE];
         char field_b[FLEETSING_OLED_VALUE_SIZE];
         char field_c[FLEETSING_OLED_VALUE_SIZE];
@@ -891,6 +982,9 @@ bool oled_task_user(void) {
             snprintf(snapshot, sizeof(snapshot), "O|M|%s|%s|%s", alert, os, field_c);
         } else if (fleetsing_pointer_page_is_active()) {
             snprintf(snapshot, sizeof(snapshot), "O|P|%s|%s|%s|%u", fleetsing_toggle_name(charybdis_get_pointer_sniping_enabled()), fleetsing_toggle_name(charybdis_get_pointer_dragscroll_enabled()), fleetsing_scroll_side_name(), fleetsing_get_active_pointer_dpi());
+        } else if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
+            fleetsing_format_numword_remaining(field_c, sizeof(field_c));
+            snprintf(snapshot, sizeof(snapshot), "O|W|%s", field_c);
         } else if (has_alert) {
             fleetsing_format_os_mode(field_c, sizeof(field_c));
             fleetsing_format_host_leds(host, sizeof(host));
