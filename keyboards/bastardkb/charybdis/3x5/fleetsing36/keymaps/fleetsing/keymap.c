@@ -1,7 +1,9 @@
 /*
- * My personal keymap for the Charybdis Nano keyboard.
- * Uses a custom keyboard layout designed for writing English and Finnish.
- * Assumes the OS language is set to Finnish.
+ * Personal Charybdis 3x5 keymap for English and Finnish.
+ *
+ * The matrix assumes the host OS keyboard layout is Finnish and keeps the
+ * physical-position aliases in layout_positions.h as the source of truth for
+ * thumb roles and other dual-role base bindings.
  */
 
 #include QMK_KEYBOARD_H
@@ -19,23 +21,40 @@
  * they make the matrix hard to scan in bulk. These aliases keep the layer
  * definitions focused on layout intent instead of modifier boilerplate.
  */
-// Mod-tap shortcuts for left-hand function layer.
+/*
+ * Left-hand function-layer mod-tap aliases.
+ *
+ * Keep these in the same left-to-right order as the layer row they occupy.
+ */
 #define _SFT_F17 LSFT_T(KC_F17)
 #define _OPT_F18 RALT_T(KC_F18)
 #define _CTL_F19 LCTL_T(KC_F19)
 #define _GUI_F20 LGUI_T(KC_F20)
 
-// Mod-tap shortcuts for right-hand function layer.
+/*
+ * Right-hand function-layer mod-tap aliases.
+ *
+ * Keep these in the same left-to-right order as the layer row they occupy.
+ */
 #define _GUI_F4 RGUI_T(KC_F4)
 #define _CTL_F5 RCTL_T(KC_F5)
 #define _OPT_F6 RALT_T(KC_F6)
 #define _SFT_F11 RSFT_T(KC_F11)
 
-// Mod-tap shortcuts for numbers layer.
+/*
+ * Numbers-layer navigation helpers.
+ *
+ * These stay grouped by the physical positions they replace on that layer.
+ */
 #define _CTL_LEFT RCTL_T(KC_LEFT)
 #define _GUI_RIGHT RGUI_T(KC_RIGHT)
 
-// Mod-tap shortcuts for navigation layer.
+/*
+ * Navigation-layer movement helpers.
+ *
+ * Keep the aliases in the same left-to-right order as the row for easier
+ * visual comparison with the layer matrix below.
+ */
 #define _MEH_LEFT MEH_T(KC_LEFT)
 #define _GUI_DOWN RGUI_T(KC_DOWN)
 #define _CTL_UP RCTL_T(KC_UP)
@@ -54,11 +73,14 @@
 
 // clang-format off
 
-/**
- * \brief Base typing layer.
+/*
+ * Base typing layer.
  *
  * The actual alpha bindings mostly live in layout_positions.h so changes to a
  * physical position can be made once and then reused across combos and layers.
+ * That includes the refined thumb cluster, where Esc moved to the left macro
+ * thumb, Enter moved to the right function thumb, and Backspace now lives on
+ * the right navigation thumb.
  */
 #define LAYOUT_LAYER_BASE                                                                                                               \
     _L15,       _L14,       _L13,       _L12,       _L11,               _R11,       _R12,       _R13,       _R14,       _R15,           \
@@ -66,13 +88,13 @@
     _L35,       _L34,       _L33,       _L32,       _L31,               _R31,       _R32,       _R33,       _R34,       _R35,           \
                             _L43,       _L42,       _L41,               _R41,       _R42,       _R43
 
-/**
- * \brief Smart temporary number-entry layer.
+/*
+ * Smart temporary number-entry layer.
  *
  * NumWord is a sparse overlay for inline numeric bursts. The right hand gets
- * the digit cluster, thumbs keep editing helpers, and untouched positions stay
- * transparent so a word-breaking key can fall through to the base layer and
- * switch NumWord off in one press.
+ * the digit cluster, the refined thumbs keep Space / Backspace / Enter on tap,
+ * and untouched positions stay transparent so a word-breaking key can fall
+ * through to the base layer and switch NumWord off in one press.
  */
 #define LAYOUT_LAYER_NUMWORD                                                                                                            \
     _______,    _______,    _______,    _______,    _______,            _______,    FI_7,       FI_8,       FI_9,       _______,        \
@@ -80,8 +102,8 @@
     _______,    _______,    _______,    _______,    _______,            _______,    FI_1,       FI_2,       FI_3,       _______,        \
                             KC_SPC,     KC_BSPC,    NUMLOCK,            NUMLOCK,    KC_DEL,     KC_ENT
 
-/**
- * \brief Number-entry layer.
+/*
+ * Number-entry layer.
  *
  * This is the full dedicated numeric workspace: the right hand carries the
  * digit cluster while the left hand exposes common number-adjacent symbols and
@@ -94,29 +116,36 @@
     FI_PERC,    FI_LPRN,    FI_RPRN,    FI_LBRC,    FI_RBRC,            XXXXXXX,    FI_1,       FI_2,       FI_3,       XXXXXXX,        \
                             KC_SPC,     XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
 
-/** 
-* \brief Navigation layer.
-*
-* Intended for cursor movement and document navigation without leaving the home
-* block. The rightmost one-shot Shift lets selections extend without holding a
-* modifier continuously.
-*/
+/*
+ * Navigation layer.
+ *
+ * Intended for cursor movement and document navigation without leaving the home
+ * block. The rightmost one-shot Shift lets selections extend without holding a
+ * modifier continuously, and the tap Backspace on the base thumb remains
+ * available through the transparent thumb positions when Navigation is not
+ * latched.
+ */
 #define LAYOUT_LAYER_NAVIGATION                                                                                                         \
     XXXXXXX,    S(KC_TAB),  KC_UP,      KC_TAB,     KC_PGUP,            KC_PGUP,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
     KC_LSFT,    KC_LEFT,    KC_DOWN,    KC_RGHT,    KC_DEL,             _MEH_LEFT,  _GUI_DOWN,  _CTL_UP,    _OPT_RIGHT, OSM(MOD_LSFT),  \
     XXXXXXX,    KC_END,     KC_INS,     KC_HOME,    KC_PGDN,            KC_PGDN,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,        \
                             _______,    XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
 
-/**
- * \brief Function-key layer. */
+/*
+ * Function-key layer.
+ *
+ * The refined right thumb makes Enter the tap action for the same key that
+ * holds this layer, so the most common confirmation key stays under the
+ * stronger thumb while function access remains deliberate.
+ */
 #define LAYOUT_LAYER_FUNCTION                                                                                                           \
     KC_F21,     KC_F22,     KC_F23,     KC_F24,     KC_PSCR,            KC_PSCR,    KC_F7,      KC_F8,      KC_F9,      KC_F12,         \
     _SFT_F17,   _OPT_F18,   _CTL_F19,   _GUI_F20,   KC_SCRL,            KC_SCRL,    _GUI_F4,    _CTL_F5,    _OPT_F6,    _SFT_F11,       \
     KC_F13,     KC_F14,     KC_F15,     KC_F16,     KC_PAUS,            KC_PAUS,    KC_F1,      KC_F2,      KC_F3,      KC_F10,         \
                             XXXXXXX,    XXXXXXX,    XXXXXXX,            _______,    XXXXXXX,    XXXXXXX
 
-/**
- * \brief Coding-symbol layer.
+/*
+ * Coding-symbol layer.
  *
  * This layer groups the high-frequency punctuation used for programming and
  * structured text so those symbols no longer depend on same-row combos. OS-
@@ -134,8 +163,8 @@
     FI_QUOT,    FI_DQUO,    FI_GRV,     SYM_TILD,   SYM_BSLS,           FI_SLSH,    FI_MINS,    FI_UNDS,    FI_QUES,    FI_ASTR,        \
                             KC_SPC,     KC_BSPC,    QK_LLCK,            QK_LLCK,    KC_DEL,     KC_ENT
 
-/**
- * \brief Media/system layer.
+/*
+ * Media/system layer.
  *
  * OS_MAC and OS_PC toggle the persisted Ctrl/GUI swap used for macOS vs PC
  * shortcut ergonomics. Symbols still follow the Finnish OS layout in both
@@ -150,8 +179,8 @@
     XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
                             KC_MPLY,    XXXXXXX,    KC_MSTP,            XXXXXXX,    XXXXXXX,    XXXXXXX
 
-/**
- * \brief Pointer and mouse-button layer.
+/*
+ * Pointer and mouse-button layer.
  *
  * This layer does not choose the active sensor DPI directly. It toggles
  * Charybdis sniping behavior and exposes sniping-DPI controls while userspace
@@ -167,8 +196,12 @@
     _______,    DRGSCRL,    XXXXXXX,    SET_MS_L,   XXXXXXX,            XXXXXXX,    SET_MS_R,   XXXXXXX,    DRGSCRL,    _______,        \
                             MS_BTN2,    MS_BTN1,    QK_LLCK,            QK_LLCK,    MS_BTN1,    MS_BTN2
 
-/**
- * \brief Dynamic-macro and desktop-shortcut layer. */
+/*
+ * Dynamic-macro and desktop-shortcut layer.
+ *
+ * Esc moved off this hold-tap and onto the opposite inner thumb, so this layer
+ * now uses the left inner thumb purely as "Esc on tap, Macro on hold".
+ */
 #define LAYOUT_LAYER_MACRO                                                                                                              \
     XXXXXXX,    XXXXXXX,    DM_REC2,    DM_REC1,    XXXXXXX,            XXXXXXX,    XXXXXXX,    KC_UP,      XXXXXXX,    XXXXXXX,        \
     XXXXXXX,    XXXXXXX,    DM_PLY2,    DM_PLY1,    DM_RSTP,            XXXXXXX,    KC_LEFT,    KC_DOWN,    KC_RGHT,    XXXXXXX,        \
@@ -252,6 +285,10 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
+/*
+ * NumWord borrows the base-layer positional combos so the same physical thumb
+ * and symbol chords keep working while the sparse overlay is active.
+ */
 uint8_t combo_ref_from_layer(uint8_t layer) {
     switch (layer) {
         case LAYER_NUMWORD:
@@ -262,6 +299,12 @@ uint8_t combo_ref_from_layer(uint8_t layer) {
     }
 }
 
+/*
+ * Thumb combos stay intentionally tighter than the vertical symbol chords so
+ * repeat keys and pointer buttons do not fire during normal rolling input.
+ * Caps Word and the cross-thumb NumWord combo get a wider term because they
+ * span both hands and are meant to feel deliberate.
+ */
 uint16_t get_combo_term(uint16_t combo_index, combo_t *combo) {
     (void)combo;
 
@@ -300,6 +343,10 @@ uint16_t get_combo_term(uint16_t combo_index, combo_t *combo) {
     }
 }
 
+/*
+ * Cross-thumb stateful combos should resolve only from taps. That avoids
+ * fighting the held layer-taps that now own Esc, Enter, and Backspace.
+ */
 bool get_combo_must_tap(uint16_t combo_index, combo_t *combo) {
     (void)combo;
 

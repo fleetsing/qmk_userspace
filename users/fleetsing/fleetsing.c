@@ -536,9 +536,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 layer_state_t layer_state_set_user(layer_state_t state) {
     /*
-     * Holding the symmetric main thumbs together enters the media/system layer:
-     * Numbers on the left thumb plus Navigation on the right thumb promotes to
-     * Media regardless of which thumb is pressed first.
+     * Holding the symmetric outer layer thumbs together enters the media/system
+     * layer: Space/Numbers on the left plus Backspace/Navigation on the right
+     * promotes to Media regardless of which thumb is pressed first.
      *
      * Keep this tri-layer rule in the generic userspace hook so it does not
      * depend on whether pointing-device support is compiled in.
