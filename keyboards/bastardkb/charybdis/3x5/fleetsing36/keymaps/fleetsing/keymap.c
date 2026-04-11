@@ -116,19 +116,39 @@
                             XXXXXXX,    XXXXXXX,    XXXXXXX,            _______,    XXXXXXX,    XXXXXXX
 
 /**
+ * \brief Coding-symbol layer.
+ *
+ * This layer groups the high-frequency punctuation used for programming and
+ * structured text so those symbols no longer depend on same-row combos. OS-
+ * specific bracket, angle-bracket, backslash, pipe, and similar symbols route
+ * through shared userspace custom keycodes.
+ *
+ * Finnish on macOS is the main reason this exists: several symbols that are
+ * straightforward AltGr outputs on PC use different Option/Shift chords on the
+ * Mac Finnish layout. Keep those quirks in fleetsing_symbol_process_record()
+ * instead of sprinkling raw Mac-specific keycodes through the layer matrix.
+ */
+#define LAYOUT_LAYER_SYMBOLS                                                                                                            \
+    SYM_LBRC,   SYM_LCBR,   FI_LPRN,    SYM_LABK,   FI_EQL,             FI_PLUS,    SYM_RABK,   FI_RPRN,    SYM_RCBR,   SYM_RBRC,       \
+    FI_EXLM,    SYM_AT,     FI_HASH,    SYM_DLR,    FI_PERC,            FI_CIRC,    FI_AMPR,    SYM_PIPE,   FI_COLN,    FI_SCLN,        \
+    FI_QUOT,    FI_DQUO,    FI_GRV,     SYM_TILD,   SYM_BSLS,           FI_SLSH,    FI_MINS,    FI_UNDS,    FI_QUES,    FI_ASTR,        \
+                            KC_SPC,     KC_BSPC,    QK_LLCK,            QK_LLCK,    KC_DEL,     KC_ENT
+
+/**
  * \brief Media/system layer.
  *
  * OS_MAC and OS_PC toggle the persisted Ctrl/GUI swap used for macOS vs PC
  * shortcut ergonomics. Symbols still follow the Finnish OS layout in both
  * modes; only the modifier behavior and mode-dependent symbol chords change.
  *
- * EE_CLR clears persisted QMK settings from EEPROM. QK_BOOT jumps into the
- * bootloader for flashing.
+ * This layer keeps OS-mode toggles, transport/media controls, and an explicit
+ * bootloader key for flashing. EEPROM reset is intentionally not available from
+ * the keymap.
  */
 #define LAYOUT_LAYER_MEDIA                                                                                                              \
     OS_MAC,     OS_PC,      XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    KC_UP,      XXXXXXX,    XXXXXXX,        \
     KC_MPRV,    KC_VOLD,    KC_MUTE,    KC_VOLU,    KC_MNXT,            XXXXXXX,    KC_LEFT,    KC_DOWN,    KC_RGHT,    XXXXXXX,        \
-    XXXXXXX,    XXXXXXX,    XXXXXXX,    EE_CLR,     QK_BOOT,            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
+    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    QK_BOOT,            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
                             KC_MPLY,    XXXXXXX,    KC_MSTP,            XXXXXXX,    XXXXXXX,    XXXXXXX
 
 /**
@@ -137,10 +157,13 @@
  * This layer does not choose the active sensor DPI directly. It toggles
  * Charybdis sniping behavior and exposes sniping-DPI controls while userspace
  * decides which sensor's motion is converted into scroll.
+ *
+ * The mirrored outer-corner boot keys are guarded so transient pointer-layer
+ * entry cannot trigger the bootloader accidentally.
  */
 #define LAYOUT_LAYER_POINTER                                                                                                            \
     /* Pointer-layer DPI controls are sniping-DPI controls because this layer auto-enables sniping mode. */                             \
-    QK_BOOT,    EE_CLR,     XXXXXXX,    S_D_RMOD,   S_D_MOD,            S_D_MOD,    S_D_RMOD,   XXXXXXX,    EE_CLR,     QK_BOOT,        \
+    BOOT_SAFE,  XXXXXXX,    XXXXXXX,    S_D_RMOD,   S_D_MOD,            S_D_MOD,    S_D_RMOD,   XXXXXXX,    XXXXXXX,    BOOT_SAFE,      \
     KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    XXXXXXX,            XXXXXXX,    KC_RGUI,    KC_RCTL,    KC_RALT,    KC_RSFT,        \
     _______,    DRGSCRL,    XXXXXXX,    SET_MS_L,   XXXXXXX,            XXXXXXX,    SET_MS_R,   XXXXXXX,    DRGSCRL,    _______,        \
                             MS_BTN2,    MS_BTN1,    QK_LLCK,            QK_LLCK,    MS_BTN1,    MS_BTN2
@@ -162,10 +185,73 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [LAYER_NUMBERS]    = LAYOUT_wrapper(LAYOUT_LAYER_NUMBERS),
     [LAYER_NAVIGATION] = LAYOUT_wrapper(LAYOUT_LAYER_NAVIGATION),
     [LAYER_FUNCTION]   = LAYOUT_wrapper(LAYOUT_LAYER_FUNCTION),
+    [LAYER_SYMBOLS]    = LAYOUT_wrapper(LAYOUT_LAYER_SYMBOLS),
     [LAYER_MEDIA]      = LAYOUT_wrapper(LAYOUT_LAYER_MEDIA),
     [LAYER_POINTER]    = LAYOUT_wrapper(LAYOUT_LAYER_POINTER),
     [LAYER_MACRO]      = LAYOUT_wrapper(LAYOUT_LAYER_MACRO),
 };
+
+/*
+ * Dual-role timing is tuned by key role instead of one global term:
+ * - home-row mods stay short to reduce accidental holds while typing
+ * - lower-row modifier taps get a little more time for outward reaches
+ * - thumb layer-taps stay slightly longer so Space/Tab/Enter/Backspace taps
+ *   remain easy while still making held layers feel deliberate
+ *
+ * Most cases are still keyed by physical position. When thumb roles move,
+ * revisit the thumb cases below so the intended feel follows the role swap.
+ */
+uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
+    (void)record;
+
+    switch (keycode) {
+        case _L25:
+        case _L24:
+        case _L23:
+        case _L22:
+        case _R22:
+        case _R23:
+        case _R24:
+        case _R25:
+            return 175;
+
+        case _L35:
+        case _L33:
+        case _L32:
+        case _R35:
+        case _R33:
+        case _R32:
+            return 190;
+
+        case _R41:
+        case _R42:
+            return 185;
+
+        case _L41:
+        case _L43:
+        case _R43:
+            return 200;
+
+        case _SFT_F17:
+        case _OPT_F18:
+        case _CTL_F19:
+        case _GUI_F20:
+        case _GUI_F4:
+        case _CTL_F5:
+        case _OPT_F6:
+        case _SFT_F11:
+        case _CTL_LEFT:
+        case _GUI_RIGHT:
+        case _MEH_LEFT:
+        case _GUI_DOWN:
+        case _CTL_UP:
+        case _OPT_RIGHT:
+            return 175;
+
+        default:
+            return TAPPING_TERM;
+    }
+}
 
 uint8_t combo_ref_from_layer(uint8_t layer) {
     switch (layer) {
@@ -181,8 +267,35 @@ uint16_t get_combo_term(uint16_t combo_index, combo_t *combo) {
     (void)combo;
 
     switch (combo_index) {
+        case L42_L41:
+        case L43_L41:
+        case L43_L42:
+        case R41_R43:
+            return 52;
+
+        case L41_R41:
+            return 80;
+
+        case L11_L21:
+        case L21_L31:
+        case L12_L22:
+        case L22_L32:
+        case L13_L23:
+        case L23_L33:
+        case L14_L24:
+        case L24_L34:
+        case R11_R21:
+        case R21_R31:
+        case R12_R22:
+        case R22_R32:
+        case R13_R23:
+        case R23_R33:
+        case R14_R24:
+        case R24_R34:
+            return 70;
+
         case L43_R43:
-            return 60;
+            return 80;
         default:
             return COMBO_TERM;
     }
@@ -192,6 +305,7 @@ bool get_combo_must_tap(uint16_t combo_index, combo_t *combo) {
     (void)combo;
 
     switch (combo_index) {
+        case L41_R41:
         case L43_R43:
             return true;
         default:

@@ -30,8 +30,10 @@
 
 /* Layer lock auto-clears after 60 seconds to avoid leaving a layer latched indefinitely. */
 #define LAYER_LOCK_IDLE_TIMEOUT 60000 // Turn off after 60 seconds.
-/* Global tap-vs-hold threshold for mod-taps and layer-taps unless a key overrides it. */
-#define TAPPING_TERM 300
+/* Global fallback tap-vs-hold threshold for dual-role keys. */
+#define TAPPING_TERM 200
+/* Most base-layer dual-role keys use shorter or longer per-key tuning. */
+#define TAPPING_TERM_PER_KEY
 
 /* Combos must be entered quickly enough to avoid conflicting with normal rolling input. */
 #define COMBO_TERM 35
@@ -41,6 +43,12 @@
 
 /* Reserve userspace split-RPC ids for synced OLED-facing runtime state. */
 #define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC, RPC_ID_USER_DISPLAY_SYNC
+/*
+ * The OLED display-sync payload includes several short overlay items, which is
+ * larger than QMK's default 32-byte split RPC buffer.
+ */
+#define RPC_M2S_BUFFER_SIZE 96
+#define RPC_S2M_BUFFER_SIZE 96
 
 /*
  * NumWord is a smart temporary number-entry mode layered above the base layer.

@@ -36,7 +36,7 @@
 // LT(layer, key) taps as key and holds as the target layer.
 #define _L43 LT(LAYER_NUMBERS, KC_SPC)
 #define _L42 MS_BTN1
-#define _L41 LT(LAYER_FUNCTION, KC_ESC)
+#define _L41 LT(LAYER_MACRO, KC_BSPC)
 
 // Right-hand row 1.
 #define _R11 FI_Y
@@ -59,7 +59,21 @@
 #define _R34 FI_DOT
 #define _R35 LT(LAYER_POINTER, FI_ADIA)
 
+/*
+ * Current thumb roles:
+ * - L43 = Space tap, Numbers hold
+ * - L42 = Mouse 1
+ * - L41 = Backspace tap, Macro hold
+ * - R41 = Esc tap, Function hold
+ * - R42 = Tab tap, Symbols hold
+ * - R43 = Enter tap, Navigation hold
+ *
+ * Cross-thumb behavior:
+ * - L43 + R43 tap = NumWord, hold = Media via tri-layer
+ * - L41 + R41 combo = Caps Word
+ */
 // Right-hand thumb cluster.
-#define _R41 LT(LAYER_MACRO, KC_BSPC)
-#define _R42 LT(LAYER_MEDIA, KC_TAB)
+#define _R41 LT(LAYER_FUNCTION, KC_ESC)
+/* Tap for Tab; hold for the dedicated coding-symbol layer. */
+#define _R42 LT(LAYER_SYMBOLS, KC_TAB)
 #define _R43 LT(LAYER_NAVIGATION, KC_ENT)

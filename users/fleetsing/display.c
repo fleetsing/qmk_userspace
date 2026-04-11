@@ -75,6 +75,8 @@ typedef struct {
 } fleetsing_display_sync_t;
 
 static fleetsing_display_sync_t fleetsing_display_remote_state = {0};
+
+_Static_assert(sizeof(fleetsing_display_sync_t) <= RPC_M2S_BUFFER_SIZE, "Display sync state exceeds split RPC master-to-slave buffer");
 #endif
 
 /*
@@ -117,6 +119,8 @@ static const char *fleetsing_layer_name(uint8_t layer) {
             return "NAV";
         case LAYER_FUNCTION:
             return "FN";
+        case LAYER_SYMBOLS:
+            return "SYM";
         case LAYER_MEDIA:
             return "MEDIA";
         case LAYER_POINTER:
@@ -230,6 +234,9 @@ static void fleetsing_format_locked_layers(char *buffer, size_t size) {
     if (is_layer_locked(LAYER_FUNCTION)) {
         offset += snprintf(buffer + offset, size - offset, "%sFN", offset ? "+" : "");
     }
+    if (is_layer_locked(LAYER_SYMBOLS)) {
+        offset += snprintf(buffer + offset, size - offset, "%sSYM", offset ? "+" : "");
+    }
     if (is_layer_locked(LAYER_MEDIA)) {
         offset += snprintf(buffer + offset, size - offset, "%sMEDIA", offset ? "+" : "");
     }
@@ -257,14 +264,17 @@ static uint8_t fleetsing_locked_layers_mask(void) {
     if (is_layer_locked(LAYER_FUNCTION)) {
         mask |= (uint8_t)1 << 2;
     }
-    if (is_layer_locked(LAYER_MEDIA)) {
+    if (is_layer_locked(LAYER_SYMBOLS)) {
         mask |= (uint8_t)1 << 3;
     }
-    if (is_layer_locked(LAYER_POINTER)) {
+    if (is_layer_locked(LAYER_MEDIA)) {
         mask |= (uint8_t)1 << 4;
     }
-    if (is_layer_locked(LAYER_MACRO)) {
+    if (is_layer_locked(LAYER_POINTER)) {
         mask |= (uint8_t)1 << 5;
+    }
+    if (is_layer_locked(LAYER_MACRO)) {
+        mask |= (uint8_t)1 << 6;
     }
 
     return mask;
@@ -283,12 +293,15 @@ static void fleetsing_format_locked_layers_state(uint8_t mask, char *buffer, siz
         offset += snprintf(buffer + offset, size - offset, "%sFN", offset ? "+" : "");
     }
     if (mask & ((uint8_t)1 << 3)) {
-        offset += snprintf(buffer + offset, size - offset, "%sMEDIA", offset ? "+" : "");
+        offset += snprintf(buffer + offset, size - offset, "%sSYM", offset ? "+" : "");
     }
     if (mask & ((uint8_t)1 << 4)) {
-        offset += snprintf(buffer + offset, size - offset, "%sPTR", offset ? "+" : "");
+        offset += snprintf(buffer + offset, size - offset, "%sMEDIA", offset ? "+" : "");
     }
     if (mask & ((uint8_t)1 << 5)) {
+        offset += snprintf(buffer + offset, size - offset, "%sPTR", offset ? "+" : "");
+    }
+    if (mask & ((uint8_t)1 << 6)) {
         offset += snprintf(buffer + offset, size - offset, "%sMAC", offset ? "+" : "");
     }
 
@@ -1162,17 +1175,17 @@ static uint8_t fleetsing_host_led_state_bits(void) {
 }
 
 static void fleetsing_fill_display_sync_state(fleetsing_display_sync_t *state) {
-    state->layer              = get_highest_layer(layer_state);
-    state->locked_layers_mask = fleetsing_locked_layers_mask();
-    state->pointer_flags      = fleetsing_pointer_flags_state();
-    state->dpi                = fleetsing_get_active_pointer_dpi();
-    state->os_mode            = (uint8_t)fleetsing_get_os_mode();
-    state->macro_status       = (uint8_t)fleetsing_macro_status;
-    state->host_leds          = fleetsing_host_led_state_bits();
-    state->oneshot_mods       = get_oneshot_mods();
+    state->layer               = get_highest_layer(layer_state);
+    state->locked_layers_mask  = fleetsing_locked_layers_mask();
+    state->pointer_flags       = fleetsing_pointer_flags_state();
+    state->dpi                 = fleetsing_get_active_pointer_dpi();
+    state->os_mode             = (uint8_t)fleetsing_get_os_mode();
+    state->macro_status        = (uint8_t)fleetsing_macro_status;
+    state->host_leds           = fleetsing_host_led_state_bits();
+    state->oneshot_mods        = get_oneshot_mods();
     state->oneshot_locked_mods = get_oneshot_locked_mods();
-    state->overlay_active     = fleetsing_oled_overlay_state.active;
-    state->overlay_count      = fleetsing_oled_overlay_state.count;
+    state->overlay_active      = fleetsing_oled_overlay_state.active;
+    state->overlay_count       = fleetsing_oled_overlay_state.count;
 
     for (uint8_t i = 0; i < FLEETSING_OLED_OVERLAY_MAX_ITEMS; ++i) {
         if (i < fleetsing_oled_overlay_state.count) {
@@ -1217,11 +1230,9 @@ void fleetsing_display_sync_task(void) {
     }
 }
 #else
-void fleetsing_display_post_init(void) {
-}
+void fleetsing_display_post_init(void) {}
 
-void fleetsing_display_sync_task(void) {
-}
+void fleetsing_display_sync_task(void) {}
 #endif
 
 /* The displays are physically mounted upside down relative to QMK defaults. */
@@ -1377,8 +1388,7 @@ bool oled_task_user(void) {
         char os[FLEETSING_OLED_VALUE_SIZE];
         char field_c[FLEETSING_OLED_VALUE_SIZE];
         char host[FLEETSING_OLED_VALUE_SIZE];
-        bool has_alert = is_keyboard_master() ? fleetsing_format_alert(alert, sizeof(alert))
-                                              : fleetsing_format_alert_state(fleetsing_display_remote_state.locked_layers_mask, fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, fleetsing_display_remote_state.host_leds, alert, sizeof(alert));
+        bool has_alert = is_keyboard_master() ? fleetsing_format_alert(alert, sizeof(alert)) : fleetsing_format_alert_state(fleetsing_display_remote_state.locked_layers_mask, fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, fleetsing_display_remote_state.host_leds, alert, sizeof(alert));
 
         if (fleetsing_macro_page_is_active()) {
             if (is_keyboard_master()) {

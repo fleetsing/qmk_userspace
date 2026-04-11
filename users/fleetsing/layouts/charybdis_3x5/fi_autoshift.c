@@ -25,24 +25,6 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
  * Keep the custom Auto Shift key lists in one place so the QMK hook that marks
  * them as custom and the press/release handlers cannot drift apart.
  */
-#define FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(X) \
-    X(S(FI_4))                                     \
-    X(A(FI_2))                                     \
-    X(FI_DOT)                                      \
-    X(FI_COMM)                                     \
-    X(FI_PLUS)                                     \
-    X(FI_MINS)                                     \
-    X(S(FI_7))                                     \
-    X(S(FI_QUOT))                                  \
-    X(S(FI_DOT))                                   \
-    X(A(FI_DIAE))                                  \
-    X(S(FI_8))                                     \
-    X(A(FI_8))                                     \
-    X(S(FI_9))                                     \
-    X(A(FI_9))                                     \
-    X(FI_QUOT)                                     \
-    X(S(FI_6))
-
 #define FLEETSING_CUSTOM_RETRO_AUTOSHIFT_POSITION_CASES(X) \
     X(_L25)                                                \
     X(_L24)                                                \
@@ -59,14 +41,7 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
     X(_R25)
 
 static bool fleetsing_is_custom_autoshift_symbol(uint16_t keycode) {
-    switch (keycode) {
-#define FLEETSING_CASE(kc) case kc:
-        FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(FLEETSING_CASE)
-            return true;
-#undef FLEETSING_CASE
-        default:
-            return false;
-    }
+    return fleetsing_is_symbol_combo_keycode(keycode);
 }
 
 static bool fleetsing_is_custom_retro_autoshift_position(uint16_t keycode) {
@@ -95,6 +70,10 @@ static bool fleetsing_is_custom_retro_autoshift_position(uint16_t keycode) {
  * Angle brackets are the main example: macOS intentionally keeps the original
  * working grave-key behavior (`FI_SECT` / `S(FI_SECT)`), while PC mode uses
  * the Finnish angle-bracket keycodes instead.
+ *
+ * The right-hand H+N combo (`A(FI_DIAE)`) is intentionally remapped away from
+ * its raw layout meaning so the combo can serve as a quick pipe/tilde key:
+ * tap for `|`, hold for `~`, with OS-specific Finnish-on-macOS routing here.
  */
 static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifted) {
     switch (keycode) {
@@ -117,7 +96,7 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
         case S(FI_DOT):
             return shifted ? S(FI_COMM) : S(FI_DOT);
         case A(FI_DIAE):
-            return fleetsing_os_keycode(A(FI_DIAE), FI_TILD);
+            return shifted ? fleetsing_os_keycode(A(FI_DIAE), FI_TILD) : fleetsing_os_keycode(A(FI_7), FI_PIPE);
         case S(FI_8):
             return shifted ? fleetsing_os_keycode(S(A(FI_8)), FI_LCBR) : S(FI_8);
         case A(FI_8):
@@ -201,7 +180,7 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 
     switch (keycode) {
 #define FLEETSING_CASE(kc) case kc:
-        FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(FLEETSING_CASE)
+        FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE)
             register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
             break;
 #undef FLEETSING_CASE
@@ -216,7 +195,7 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     switch (keycode) {
 #define FLEETSING_CASE(kc) case kc:
-        FLEETSING_CUSTOM_AUTOSHIFT_SYMBOL_CASES(FLEETSING_CASE) {
+        FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE) {
             uint16_t output_keycode = fleetsing_autoshift_output_keycode(keycode, shifted);
 
             unregister_code16(output_keycode);

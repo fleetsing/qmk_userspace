@@ -9,31 +9,24 @@
  * - each *_COMBO array lists the source keys
  * - key_combos[] maps that source chord to the emitted keycode
  *
- * Several emitted symbols are also listed in fi_autoshift.c because they have
- * custom Finnish Auto Shift behavior. The combo outputs keep the original raw
- * keycodes that already worked with Auto Shift; fi_autoshift.c now branches the
- * actual emitted symbol by OS mode. When changing those outputs, check both
- * files together.
+ * Several emitted symbols use shared userspace handling:
+ * - fleetsing.h owns the canonical list of symbol-combo keycodes
+ * - fi_autoshift.c applies their custom Finnish Auto Shift behavior
+ *
+ * The combo outputs keep the original raw keycodes that already worked with
+ * Auto Shift; fi_autoshift.c may then branch the actual emitted symbol by OS
+ * mode. When changing those outputs, check both files together.
  */
 
 enum combos {
-    /* Same-row punctuation / tab / thumb combos. */
-    L24_L23,
-    L34_L33,
-    L14_L13,
-    L23_L22,
+    /* Thumb combos kept for repeat, Caps Word, pointing buttons, and NumWord entry. */
     L42_L41,
     L43_L41,
     L43_L42,
     L43_R43,
+    L41_R41,
 
-    R23_R24,
-    R34_R33,
-    R13_R14,
-    R22_R23,
-    R41_R42,
     R41_R43,
-    R42_R43,
 
     /* Vertical same-finger combos used for additional symbol access. */
     L11_L21,
@@ -56,22 +49,13 @@ enum combos {
 };
 
 /* Chord source definitions. COMBO_END terminates each source sequence. */
-const uint16_t PROGMEM L24_L23_COMBO[] = {_L24, _L23, COMBO_END};
-const uint16_t PROGMEM L34_L33_COMBO[] = {_L34, _L33, COMBO_END};
-const uint16_t PROGMEM L14_L13_COMBO[] = {_L14, _L13, COMBO_END};
-const uint16_t PROGMEM L23_L22_COMBO[] = {_L23, _L22, COMBO_END};
 const uint16_t PROGMEM L42_L41_COMBO[] = {_L42, _L41, COMBO_END};
 const uint16_t PROGMEM L43_L41_COMBO[] = {_L43, _L41, COMBO_END};
 const uint16_t PROGMEM L43_L42_COMBO[] = {_L43, _L42, COMBO_END};
 const uint16_t PROGMEM L43_R43_COMBO[] = {_L43, _R43, COMBO_END};
+const uint16_t PROGMEM L41_R41_COMBO[] = {_L41, _R41, COMBO_END};
 
-const uint16_t PROGMEM R23_R24_COMBO[] = {_R23, _R24, COMBO_END};
-const uint16_t PROGMEM R34_R33_COMBO[] = {_R33, _R34, COMBO_END};
-const uint16_t PROGMEM R13_R14_COMBO[] = {_R13, _R14, COMBO_END};
-const uint16_t PROGMEM R22_R23_COMBO[] = {_R22, _R23, COMBO_END};
-const uint16_t PROGMEM R41_R42_COMBO[] = {_R41, _R42, COMBO_END};
 const uint16_t PROGMEM R41_R43_COMBO[] = {_R41, _R43, COMBO_END};
-const uint16_t PROGMEM R42_R43_COMBO[] = {_R42, _R43, COMBO_END};
 
 const uint16_t PROGMEM L11_L21_COMBO[] = {_L11, _L21, COMBO_END};
 const uint16_t PROGMEM L21_L31_COMBO[] = {_L21, _L31, COMBO_END};
@@ -93,22 +77,13 @@ const uint16_t PROGMEM R24_R34_COMBO[] = {_R24, _R34, COMBO_END};
 
 /* Output mapping for each chord. Order must match the enum above. */
 combo_t key_combos[] = {
-    [L24_L23] = COMBO(L24_L23_COMBO, FI_COMM),
-    [L34_L33] = COMBO(L34_L33_COMBO, FI_COLN),
-    [L14_L13] = COMBO(L14_L13_COMBO, FI_PLUS),
-    [L23_L22] = COMBO(L23_L22_COMBO, S(KC_TAB)),
     [L42_L41] = COMBO(L42_L41_COMBO, MS_BTN3),
     [L43_L41] = COMBO(L43_L41_COMBO, QK_REP),
     [L43_L42] = COMBO(L43_L42_COMBO, MS_BTN2),
     [L43_R43] = COMBO(L43_R43_COMBO, NUMWORD),
+    [L41_R41] = COMBO(L41_R41_COMBO, CAPSWORD),
 
-    [R23_R24] = COMBO(R23_R24_COMBO, FI_DOT),
-    [R34_R33] = COMBO(R34_R33_COMBO, FI_QUOT),
-    [R13_R14] = COMBO(R13_R14_COMBO, FI_MINS),
-    [R22_R23] = COMBO(R22_R23_COMBO, KC_TAB),
-    [R41_R42] = COMBO(R41_R42_COMBO, MS_BTN3),
     [R41_R43] = COMBO(R41_R43_COMBO, QK_AREP),
-    [R42_R43] = COMBO(R42_R43_COMBO, MS_BTN2),
 
     [L11_L21] = COMBO(L11_L21_COMBO, S(FI_4)),
     [L21_L31] = COMBO(L21_L31_COMBO, A(FI_2)),

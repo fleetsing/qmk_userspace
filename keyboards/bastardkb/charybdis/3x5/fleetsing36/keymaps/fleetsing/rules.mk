@@ -12,6 +12,8 @@ AUTO_SHIFT_ENABLE = yes
 REPEAT_KEY_ENABLE = yes
 # Enables QK_LLCK on the numbers and navigation layers.
 LAYER_LOCK_ENABLE = yes
+# Enables Caps Word for acronyms, constants, and similar all-caps bursts.
+CAPS_WORD_ENABLE = yes
 # Enables the positional combos defined in layouts/charybdis_3x5/combos.def.
 COMBO_ENABLE = yes
 # Enables DM_REC*, DM_PLY*, and DM_RSTP on the macro layer.

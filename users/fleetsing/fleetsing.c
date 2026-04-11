@@ -17,6 +17,17 @@ static layer_state_t           fleetsing_locked_layers_before;
 static bool                    fleetsing_layer_lock_pending;
 static bool                    fleetsing_numword_active;
 static uint16_t                fleetsing_numword_timer;
+typedef struct {
+    bool     active;
+    bool     fired;
+    uint16_t start_time;
+} fleetsing_hold_action_t;
+
+static fleetsing_hold_action_t fleetsing_boot_hold;
+
+#ifndef FLEETSING_BOOT_HOLD_TERM
+#    define FLEETSING_BOOT_HOLD_TERM 600
+#endif
 
 typedef struct {
     bool     active;
@@ -92,7 +103,6 @@ static bool fleetsing_numword_continue(uint16_t keycode) {
         case FI_RBRC:
         case FI_LCBR:
         case FI_RCBR:
-        case S(FI_4):
         case KC_BSPC:
         case KC_DEL:
         case QK_REP:
@@ -100,7 +110,7 @@ static bool fleetsing_numword_continue(uint16_t keycode) {
             return true;
 
         default:
-            return false;
+            return fleetsing_is_symbol_combo_keycode(keycode);
     }
 }
 
@@ -147,6 +157,9 @@ static layer_state_t fleetsing_locked_layers_mask(void) {
     if (is_layer_locked(LAYER_FUNCTION)) {
         locked_layers |= (layer_state_t)1 << LAYER_FUNCTION;
     }
+    if (is_layer_locked(LAYER_SYMBOLS)) {
+        locked_layers |= (layer_state_t)1 << LAYER_SYMBOLS;
+    }
     if (is_layer_locked(LAYER_MEDIA)) {
         locked_layers |= (layer_state_t)1 << LAYER_MEDIA;
     }
@@ -158,6 +171,47 @@ static layer_state_t fleetsing_locked_layers_mask(void) {
     }
 
     return locked_layers;
+}
+
+/*
+ * Keep maintenance actions one-handed and mirrored, but require explicit hold
+ * intent so transient pointer-layer entry cannot trigger them by accident.
+ */
+static void fleetsing_trigger_safe_boot(void) {
+    clear_keyboard();
+    fleetsing_haptic_play_event(FLEETSING_HAPTIC_BOOTLOADER);
+    reset_keyboard();
+}
+
+static bool fleetsing_maintenance_process_record(uint16_t keycode, keyrecord_t *record) {
+    fleetsing_hold_action_t *state     = NULL;
+
+    switch (keycode) {
+        case BOOT_SAFE:
+            state = &fleetsing_boot_hold;
+            break;
+        default:
+            return true;
+    }
+
+    if (record->event.pressed) {
+        state->active     = true;
+        state->fired      = false;
+        state->start_time = timer_read();
+    } else {
+        state->active = false;
+        state->fired  = false;
+    }
+
+    return false;
+}
+
+static void fleetsing_maintenance_task(void) {
+    if (fleetsing_boot_hold.active && !fleetsing_boot_hold.fired && timer_elapsed(fleetsing_boot_hold.start_time) >= FLEETSING_BOOT_HOLD_TERM) {
+        fleetsing_boot_hold.fired = true;
+        fleetsing_boot_hold.active = false;
+        fleetsing_trigger_safe_boot();
+    }
 }
 
 void fleetsing_set_scroll_side(fleetsing_scroll_side_t side) {
@@ -230,6 +284,73 @@ bool fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record) {
     }
 
     return true;
+}
+
+static bool fleetsing_caps_word_process_record(uint16_t keycode, keyrecord_t *record) {
+    if (keycode == CAPSWORD) {
+        if (record->event.pressed) {
+            caps_word_on();
+        }
+        return false;
+    }
+
+    return true;
+}
+
+bool fleetsing_symbol_process_record(uint16_t keycode, keyrecord_t *record) {
+    if (!record->event.pressed) {
+        return true;
+    }
+
+    /*
+     * Finnish-on-macOS symbol quirks live here.
+     *
+     * The active OS mode still assumes a Finnish keyboard layout, but macOS and
+     * PC layouts disagree on several "coding punctuation" chords. In particular:
+     * - macOS uses Option+7 for pipe and Option+Shift+7 for backslash
+     * - macOS angle brackets come from the section/grave key instead of FI_LABK
+     * - brackets, braces, at-sign, dollar, and tilde also use different chords
+     *
+     * Keep these translations centralized so layer keys and combos can refer to
+     * logical symbol keycodes instead of encoding platform-specific raw chords.
+     */
+    switch (keycode) {
+        case SYM_AT:
+            tap_code16(fleetsing_os_keycode(A(FI_2), FI_AT));
+            return false;
+        case SYM_DLR:
+            tap_code16(fleetsing_os_keycode(A(FI_4), FI_DLR));
+            return false;
+        case SYM_LBRC:
+            tap_code16(fleetsing_os_keycode(A(FI_8), FI_LBRC));
+            return false;
+        case SYM_RBRC:
+            tap_code16(fleetsing_os_keycode(A(FI_9), FI_RBRC));
+            return false;
+        case SYM_LCBR:
+            tap_code16(fleetsing_os_keycode(S(A(FI_8)), FI_LCBR));
+            return false;
+        case SYM_RCBR:
+            tap_code16(fleetsing_os_keycode(S(A(FI_9)), FI_RCBR));
+            return false;
+        case SYM_LABK:
+            tap_code16(fleetsing_os_keycode(FI_SECT, FI_LABK));
+            return false;
+        case SYM_RABK:
+            tap_code16(fleetsing_os_keycode(S(FI_SECT), FI_RABK));
+            return false;
+        case SYM_BSLS:
+            tap_code16(fleetsing_os_keycode(S(A(FI_7)), FI_BSLS));
+            return false;
+        case SYM_PIPE:
+            tap_code16(fleetsing_os_keycode(A(FI_7), FI_PIPE));
+            return false;
+        case SYM_TILD:
+            tap_code16(fleetsing_os_keycode(A(FI_DIAE), FI_TILD));
+            return false;
+        default:
+            return true;
+    }
 }
 
 bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record) {
@@ -370,23 +491,29 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 fleetsing_locked_layers_before = fleetsing_locked_layers_mask();
                 fleetsing_layer_lock_pending   = true;
                 break;
-            case EE_CLR:
-                fleetsing_haptic_play_event(FLEETSING_HAPTIC_EEPROM_CLEAR);
-                break;
-            case QK_BOOT:
-                fleetsing_haptic_play_event(FLEETSING_HAPTIC_BOOTLOADER);
-                break;
             default:
                 break;
         }
     }
 
     /* Main per-key hook for userspace-owned custom keycodes. */
+    if (!fleetsing_maintenance_process_record(keycode, record)) {
+        return false;
+    }
+
     if (!fleetsing_pointing_process_record(keycode, record)) {
         return false;
     }
 
+    if (!fleetsing_caps_word_process_record(keycode, record)) {
+        return false;
+    }
+
     if (!fleetsing_numword_process_record(keycode, record)) {
+        return false;
+    }
+
+    if (!fleetsing_symbol_process_record(keycode, record)) {
         return false;
     }
 
@@ -395,6 +522,43 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     return true;
+}
+
+/*
+ * Extend Caps Word for Finnish letters and identifier-friendly separators.
+ *
+ * The core default is US-centric and would treat the raw key positions for
+ * Å/Ä/Ö as punctuation. Keep those keys in the same "letter" bucket as A-Z so
+ * Caps Word works for Finnish words as well as all-caps identifiers.
+ *
+ * Continue through the punctuation that often appears inside code-oriented
+ * names and paths so sequences such as FOO_BAR, FOO-BAR, FOO/BAR, and
+ * CONFIG.H stay in Caps Word without re-triggering it.
+ */
+bool caps_word_press_user(uint16_t keycode) {
+    switch (keycode) {
+        case KC_A ... KC_Z:
+        case FI_ARNG:
+        case FI_ADIA:
+        case FI_ODIA:
+            add_weak_mods(MOD_BIT(KC_LSFT));
+            return true;
+
+        case KC_1 ... KC_0:
+        case KC_BSPC:
+        case KC_DEL:
+        case FI_DOT:
+        case FI_MINS:
+        case FI_SLSH:
+        case FI_COLN:
+        case FI_BSLS:
+        case FI_UNDS:
+        case SYM_BSLS:
+            return true;
+
+        default:
+            return false;
+    }
 }
 
 void post_process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -413,6 +577,7 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+    fleetsing_maintenance_task();
     fleetsing_numword_task();
 #ifdef SPLIT_TRANSACTION_IDS_USER
     fleetsing_numword_sync_task();

@@ -15,6 +15,7 @@ enum charybdis_keymap_layers {
     LAYER_NUMBERS,
     LAYER_NAVIGATION,
     LAYER_FUNCTION,
+    LAYER_SYMBOLS,
     LAYER_MEDIA,
     LAYER_POINTER,
     LAYER_MACRO,
@@ -31,8 +32,21 @@ enum custom_keycodes {
     NUMLOCK,
     SET_MS_L,
     SET_MS_R,
+    BOOT_SAFE,
     OS_MAC,
     OS_PC,
+    CAPSWORD,
+    SYM_AT,
+    SYM_DLR,
+    SYM_LBRC,
+    SYM_RBRC,
+    SYM_LCBR,
+    SYM_RCBR,
+    SYM_LABK,
+    SYM_RABK,
+    SYM_BSLS,
+    SYM_PIPE,
+    SYM_TILD,
 };
 
 typedef enum {
@@ -62,6 +76,39 @@ typedef enum {
 } fleetsing_haptic_event_t;
 
 /*
+ * Keep the base-layout symbol combo outputs and their custom Auto Shift
+ * overrides on one shared list so NumWord and Auto Shift cannot drift apart.
+ */
+#define FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(X) \
+    X(S(FI_4))                                  \
+    X(A(FI_2))                                  \
+    X(FI_DOT)                                   \
+    X(FI_COMM)                                  \
+    X(FI_PLUS)                                  \
+    X(FI_MINS)                                  \
+    X(S(FI_7))                                  \
+    X(S(FI_QUOT))                               \
+    X(S(FI_DOT))                                \
+    X(A(FI_DIAE))                               \
+    X(S(FI_8))                                  \
+    X(A(FI_8))                                  \
+    X(S(FI_9))                                  \
+    X(A(FI_9))                                  \
+    X(FI_QUOT)                                  \
+    X(S(FI_6))
+
+static inline bool fleetsing_is_symbol_combo_keycode(uint16_t keycode) {
+    switch (keycode) {
+#define FLEETSING_CASE(kc) case kc:
+        FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE)
+            return true;
+#undef FLEETSING_CASE
+        default:
+            return false;
+    }
+}
+
+/*
  * Shared state and hook helpers used across the userspace modules.
  *
  * Scroll-side selection is userspace-owned. Sensor DPI is intentionally not:
@@ -81,6 +128,7 @@ void                    fleetsing_haptic_play_event(fleetsing_haptic_event_t eve
  */
 void fleetsing_display_note_activity(void);
 bool fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record);
+bool fleetsing_symbol_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record);
 bool fleetsing_numword_is_active(void);
