@@ -101,7 +101,7 @@ static inline bool fleetsing_is_symbol_combo_keycode(uint16_t keycode) {
     switch (keycode) {
 #define FLEETSING_CASE(kc) case kc:
         FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE)
-            return true;
+        return true;
 #undef FLEETSING_CASE
         default:
             return false;
@@ -126,20 +126,21 @@ void                    fleetsing_haptic_play_event(fleetsing_haptic_event_t eve
  * Key and pointing modules call this to reset the OLED idle timer after real
  * user activity. The timer itself stays private to the display module.
  */
-void fleetsing_display_note_activity(void);
-bool fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record);
-bool fleetsing_symbol_process_record(uint16_t keycode, keyrecord_t *record);
-bool fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
-bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record);
-bool fleetsing_numword_is_active(void);
-uint16_t fleetsing_numword_idle_remaining(void);
-bool fleetsing_numword_display_is_active(void);
-uint16_t fleetsing_numword_display_remaining(void);
-void fleetsing_display_post_init(void);
-void fleetsing_display_sync_task(void);
-bool fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
-void fleetsing_numword_task(void);
-void fleetsing_autoshift_haptic_matrix_scan(void);
+void          fleetsing_display_note_activity(void);
+bool          fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record);
+bool          fleetsing_symbol_process_record(uint16_t keycode, keyrecord_t *record);
+bool          fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
+layer_state_t fleetsing_pointing_layer_state_set(layer_state_t state);
+bool          fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record);
+bool          fleetsing_numword_is_active(void);
+uint16_t      fleetsing_numword_idle_remaining(void);
+bool          fleetsing_numword_display_is_active(void);
+uint16_t      fleetsing_numword_display_remaining(void);
+void          fleetsing_display_post_init(void);
+void          fleetsing_display_sync_task(void);
+bool          fleetsing_autoshift_haptic_process_record(uint16_t keycode, keyrecord_t *record);
+void          fleetsing_numword_task(void);
+void          fleetsing_autoshift_haptic_matrix_scan(void);
 
 /*
  * Layout helpers can override this if a keyboard wants a different "precision

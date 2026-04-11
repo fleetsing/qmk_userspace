@@ -38,6 +38,20 @@ This is where the board's personality lives:
 - pointer-side selection and userspace pointer behavior
 - OS-mode switching and Finnish-layout symbol handling
 
+## Behavior Notes
+
+- `NumWord` is the quick numeric burst mode entered from the `L43 + R43` thumb
+  combo. It stays active through digit entry, common numeric punctuation, edit
+  keys, and cursor movement keys such as arrows, Home/End, and Page Up/Down.
+- The media/system layer is a tri-layer reached by holding the Numbers thumb on
+  the left and the Navigation thumb on the right at the same time. This layer
+  is userspace-defined and does not depend on pointing-device support.
+- Bootloader entry is intentionally kept off the casual media layer. The only
+  in-keymap boot access is the guarded `BOOT_SAFE` hold on the pointer layer.
+- Both `OS_MAC` and `OS_PC` still assume a Finnish host keyboard layout. The OS
+  mode changes modifier swapping and the platform-specific symbol chords, not
+  the underlying language layout.
+
 ## Start Here
 
 - Workspace overview: [`../README.md`](../README.md)

@@ -65,8 +65,9 @@ static void fleetsing_numword_off(void) {
 }
 
 /*
- * NumWord stays active for digits, editing, repeat, and the raw symbol
- * keycodes produced by the positional combos and Auto Shift overrides.
+ * NumWord stays active for digits, editing, cursor movement, repeat, and the
+ * raw symbol keycodes produced by the positional combos and Auto Shift
+ * overrides.
  */
 static bool fleetsing_numword_continue(uint16_t keycode) {
     switch (keycode) {
@@ -105,6 +106,15 @@ static bool fleetsing_numword_continue(uint16_t keycode) {
         case FI_RCBR:
         case KC_BSPC:
         case KC_DEL:
+        case KC_LEFT:
+        case KC_RGHT:
+        case KC_UP:
+        case KC_DOWN:
+        case KC_HOME:
+        case KC_END:
+        case KC_PGUP:
+        case KC_PGDN:
+        case KC_INS:
         case QK_REP:
         case QK_AREP:
             return true;
@@ -184,7 +194,7 @@ static void fleetsing_trigger_safe_boot(void) {
 }
 
 static bool fleetsing_maintenance_process_record(uint16_t keycode, keyrecord_t *record) {
-    fleetsing_hold_action_t *state     = NULL;
+    fleetsing_hold_action_t *state = NULL;
 
     switch (keycode) {
         case BOOT_SAFE:
@@ -208,7 +218,7 @@ static bool fleetsing_maintenance_process_record(uint16_t keycode, keyrecord_t *
 
 static void fleetsing_maintenance_task(void) {
     if (fleetsing_boot_hold.active && !fleetsing_boot_hold.fired && timer_elapsed(fleetsing_boot_hold.start_time) >= FLEETSING_BOOT_HOLD_TERM) {
-        fleetsing_boot_hold.fired = true;
+        fleetsing_boot_hold.fired  = true;
         fleetsing_boot_hold.active = false;
         fleetsing_trigger_safe_boot();
     }
@@ -451,8 +461,8 @@ static void fleetsing_numword_sync_task(void) {
     static fleetsing_numword_sync_t last_sent_state = {0};
     static uint32_t                 last_sync       = 0;
     fleetsing_numword_sync_t        current_state   = {
-               .active       = fleetsing_numword_active,
-               .remaining_ms = fleetsing_numword_idle_remaining(),
+        .active       = fleetsing_numword_active,
+        .remaining_ms = fleetsing_numword_idle_remaining(),
     };
     bool needs_sync = memcmp(&current_state, &last_sent_state, sizeof(current_state)) != 0;
 
@@ -522,6 +532,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     return true;
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    /*
+     * Holding the symmetric main thumbs together enters the media/system layer:
+     * Numbers on the left thumb plus Navigation on the right thumb promotes to
+     * Media regardless of which thumb is pressed first.
+     *
+     * Keep this tri-layer rule in the generic userspace hook so it does not
+     * depend on whether pointing-device support is compiled in.
+     */
+    state = update_tri_layer_state(state, LAYER_NUMBERS, LAYER_NAVIGATION, LAYER_MEDIA);
+    return fleetsing_pointing_layer_state_set(state);
 }
 
 /*

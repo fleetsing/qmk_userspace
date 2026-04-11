@@ -40,6 +40,36 @@ themes:
   source of truth for DPI and sniping DPI
 - Layout-specific Finnish Auto Shift behavior
 
+## Layer Summary
+
+- Base: alpha layout plus home-row mods, thumb layer-taps, and the shared
+  physical positions that combos build on.
+- NumWord: temporary numeric burst layer entered by the `L43 + R43` thumb
+  combo. It stays alive for digits, common numeric symbols, editing keys, and
+  cursor movement so inline number editing does not immediately cancel it.
+- Numbers: denser numeric entry with symbols and editing helpers on the left
+  hand and the digit cluster on the right.
+- Navigation: cursor movement and document navigation, with the right thumb as
+  the hold key that exposes it from base.
+- Function: F-keys and function-row modifiers.
+- Symbols: dedicated coding punctuation that avoids overloading combo space for
+  every programming symbol.
+- Media: OS mode toggles and media/system navigation. It is reached as a
+  tri-layer by holding Numbers and Navigation together, and it deliberately has
+  no direct bootloader key.
+- Pointer: pointer-layer controls, drag-scroll, scroll-side selection, and the
+  guarded `BOOT_SAFE` hold for flashing.
+- Macro: dynamic macro recording/playback and common desktop clipboard chords.
+
+## Combo Highlights
+
+- `L43 + R43`: `NumWord`
+- `L43 + L41`: `QK_REP`
+- `R41 + R43`: `QK_AREP`
+- `L41 + R41`: `Caps Word`
+- Vertical same-finger combos on the alpha columns: high-frequency symbol
+  access with Finnish-specific Auto Shift behavior
+
 The main implementation lives in:
 
 - `keyboards/bastardkb/charybdis/3x5/fleetsing36/keymaps/fleetsing/keymap.c`
@@ -55,8 +85,8 @@ This page is intended to grow. Good future additions:
 - photos of the board
 - a labeled layer diagram
 - notes on physical build choices
-- a summary of each layer's purpose
-- a short explanation of combo families and pointer-mode behavior
+- a visual map of the layer and combo families summarized above
+- a short explanation of pointer-mode behavior and scroll-side selection
 
 ## Verification
 

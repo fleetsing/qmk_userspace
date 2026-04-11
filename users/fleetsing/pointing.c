@@ -104,15 +104,8 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
 }
 #endif
 
+layer_state_t fleetsing_pointing_layer_state_set(layer_state_t state) {
 #ifdef POINTING_DEVICE_ENABLE
-layer_state_t layer_state_set_user(layer_state_t state) {
-    /*
-     * Holding the symmetric main thumbs together enters the media/system layer:
-     * Numbers on the left thumb plus Navigation on the right thumb promotes to
-     * Media regardless of which thumb is pressed first.
-     */
-    state = update_tri_layer_state(state, LAYER_NUMBERS, LAYER_NAVIGATION, LAYER_MEDIA);
-
     bool sniping_was_enabled = charybdis_get_pointer_sniping_enabled();
     bool sniping_enabled     = layer_state_cmp(state, FLEETSING_AUTO_SNIPING_LAYER);
 
@@ -124,7 +117,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     if (sniping_was_enabled != sniping_enabled) {
         fleetsing_haptic_play_event(sniping_enabled ? FLEETSING_HAPTIC_POINTER_LAYER_ON : FLEETSING_HAPTIC_POINTER_LAYER_OFF);
     }
+#endif
 
     return state;
 }
-#endif

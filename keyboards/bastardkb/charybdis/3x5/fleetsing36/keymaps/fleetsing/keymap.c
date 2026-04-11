@@ -141,14 +141,13 @@
  * shortcut ergonomics. Symbols still follow the Finnish OS layout in both
  * modes; only the modifier behavior and mode-dependent symbol chords change.
  *
- * This layer keeps OS-mode toggles, transport/media controls, and an explicit
- * bootloader key for flashing. EEPROM reset is intentionally not available from
- * the keymap.
+ * This layer keeps OS-mode toggles and transport/media controls. Maintenance
+ * actions stay off this layer so it remains safe to lock and use casually.
  */
 #define LAYOUT_LAYER_MEDIA                                                                                                              \
     OS_MAC,     OS_PC,      XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    KC_UP,      XXXXXXX,    XXXXXXX,        \
     KC_MPRV,    KC_VOLD,    KC_MUTE,    KC_VOLU,    KC_MNXT,            XXXXXXX,    KC_LEFT,    KC_DOWN,    KC_RGHT,    XXXXXXX,        \
-    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    QK_BOOT,            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
+    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
                             KC_MPLY,    XXXXXXX,    KC_MSTP,            XXXXXXX,    XXXXXXX,    XXXXXXX
 
 /**
