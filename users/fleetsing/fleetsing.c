@@ -64,12 +64,59 @@ static void fleetsing_numword_off(void) {
     layer_off(LAYER_NUMWORD);
 }
 
+static uint16_t fleetsing_repeat_key_tap_keycode(uint16_t keycode) {
+#ifndef NO_ACTION_TAPPING
+    switch (keycode) {
+        case QK_MOD_TAP ... QK_MOD_TAP_MAX:
+            return QK_MOD_TAP_GET_TAP_KEYCODE(keycode);
+#    ifndef NO_ACTION_LAYER
+        case QK_LAYER_TAP ... QK_LAYER_TAP_MAX:
+            return QK_LAYER_TAP_GET_TAP_KEYCODE(keycode);
+#    endif // NO_ACTION_LAYER
+        default:
+            break;
+    }
+#endif // !NO_ACTION_TAPPING
+
+#ifdef SWAP_HANDS_ENABLE
+    if (IS_SWAP_HANDS_KEYCODE(keycode)) {
+        return KC_NO;
+    }
+    if (keycode >= QK_SWAP_HANDS && keycode <= QK_SWAP_HANDS_MAX) {
+        return QK_SWAP_HANDS_GET_TAP_KEYCODE(keycode);
+    }
+#endif // SWAP_HANDS_ENABLE
+
+    return keycode;
+}
+
+/*
+ * NumWord should react to what Repeat / Alt Repeat will emit, not just to the
+ * helper key itself. This keeps the overlay active for repeated digits and
+ * editing keys, but lets it switch off when the repeated output would leave
+ * the numeric editing flow.
+ */
+static uint16_t fleetsing_numword_resolve_repeat_target(uint16_t keycode) {
+    switch (keycode) {
+        case QK_REP:
+            return fleetsing_repeat_key_tap_keycode(get_last_keycode());
+        case QK_AREP:
+            return fleetsing_repeat_key_tap_keycode(get_alt_repeat_key_keycode());
+        default:
+            return fleetsing_repeat_key_tap_keycode(keycode);
+    }
+}
+
 /*
  * NumWord stays active for digits, editing, cursor movement, repeat, and the
  * raw symbol keycodes produced by the positional combos and Auto Shift
  * overrides.
  */
 static bool fleetsing_numword_continue(uint16_t keycode) {
+    if (fleetsing_is_symbol_combo_keycode(keycode)) {
+        return true;
+    }
+
     switch (keycode) {
         case FI_1:
         case FI_2:
@@ -89,6 +136,7 @@ static bool fleetsing_numword_continue(uint16_t keycode) {
         case FI_MINS:
         case FI_UNDS:
         case FI_SLSH:
+        case FI_PIPE:
         case FI_ASTR:
         case FI_PERC:
         case FI_AMPR:
@@ -104,6 +152,26 @@ static bool fleetsing_numword_continue(uint16_t keycode) {
         case FI_RBRC:
         case FI_LCBR:
         case FI_RCBR:
+        case FI_TILD:
+        case A(FI_7):
+        case S(A(FI_7)):
+        case A(FI_8):
+        case A(FI_9):
+        case S(A(FI_8)):
+        case S(A(FI_9)):
+        case FI_SECT:
+        case S(FI_SECT):
+        case SYM_AT:
+        case SYM_DLR:
+        case SYM_LBRC:
+        case SYM_RBRC:
+        case SYM_LCBR:
+        case SYM_RCBR:
+        case SYM_LABK:
+        case SYM_RABK:
+        case SYM_BSLS:
+        case SYM_PIPE:
+        case SYM_TILD:
         case KC_BSPC:
         case KC_DEL:
         case KC_LEFT:
@@ -115,12 +183,10 @@ static bool fleetsing_numword_continue(uint16_t keycode) {
         case KC_PGUP:
         case KC_PGDN:
         case KC_INS:
-        case QK_REP:
-        case QK_AREP:
             return true;
 
         default:
-            return fleetsing_is_symbol_combo_keycode(keycode);
+            return false;
     }
 }
 
@@ -363,6 +429,99 @@ bool fleetsing_symbol_process_record(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
+/*
+ * Keep repeat history focused on keys that should be replayed.
+ *
+ * Layer/mode toggles and other stateful helper keycodes are useful to invoke,
+ * but they should not replace the last real editing key for Repeat / Alt
+ * Repeat.
+ */
+bool remember_last_key_user(uint16_t keycode, keyrecord_t *record, uint8_t *remembered_mods) {
+    (void)record;
+    (void)remembered_mods;
+
+    switch (keycode) {
+        case NUMWORD:
+        case NUMLOCK:
+        case SET_MS_L:
+        case SET_MS_R:
+        case BOOT_SAFE:
+        case OS_MAC:
+        case OS_PC:
+        case CAPSWORD:
+            return false;
+        default:
+            return true;
+    }
+}
+
+/*
+ * Extend Alt Repeat with the symbol pairs that are meaningful on this layout.
+ *
+ * QMK's built-in table already handles letters, arrows, and a few US-centric
+ * punctuation pairs. These overrides cover the logical symbol-layer keycodes
+ * plus the Finnish/macOS raw outputs used by the shared symbol combos.
+ */
+uint16_t get_alt_repeat_key_keycode_user(uint16_t keycode, uint8_t mods) {
+    (void)mods;
+
+    switch (keycode) {
+        case SYM_LBRC:
+            return SYM_RBRC;
+        case SYM_RBRC:
+            return SYM_LBRC;
+        case SYM_LCBR:
+            return SYM_RCBR;
+        case SYM_RCBR:
+            return SYM_LCBR;
+        case SYM_LABK:
+            return SYM_RABK;
+        case SYM_RABK:
+            return SYM_LABK;
+        case SYM_BSLS:
+            return SYM_PIPE;
+        case SYM_PIPE:
+            return SYM_BSLS;
+
+        case FI_LBRC:
+            return FI_RBRC;
+        case FI_RBRC:
+            return FI_LBRC;
+        case FI_LCBR:
+            return FI_RCBR;
+        case FI_RCBR:
+            return FI_LCBR;
+        case FI_LABK:
+            return FI_RABK;
+        case FI_RABK:
+            return FI_LABK;
+        case FI_BSLS:
+            return FI_PIPE;
+        case FI_PIPE:
+            return FI_BSLS;
+
+        case A(FI_8):
+            return A(FI_9);
+        case A(FI_9):
+            return A(FI_8);
+        case S(A(FI_8)):
+            return S(A(FI_9));
+        case S(A(FI_9)):
+            return S(A(FI_8));
+        case FI_SECT:
+            return S(FI_SECT);
+        case S(FI_SECT):
+            return FI_SECT;
+        case A(FI_7):
+            return S(A(FI_7));
+        case S(A(FI_7)):
+            return A(FI_7);
+
+        default:
+            return KC_TRANSPARENT;
+    }
+}
+
 bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record) {
     if (keycode == NUMWORD) {
         if (record->event.pressed) {
@@ -391,13 +550,17 @@ bool fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record) {
         return true;
     }
 
+    if (keycode == QK_REP || keycode == QK_AREP) {
+        keycode = fleetsing_numword_resolve_repeat_target(keycode);
+    } else {
 #ifndef NO_ACTION_TAPPING
-    if (keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX && record->tap.count != 0) {
-        keycode = QK_MOD_TAP_GET_TAP_KEYCODE(keycode);
-    } else if (keycode >= QK_LAYER_TAP && keycode <= QK_LAYER_TAP_MAX && record->tap.count != 0) {
-        keycode = QK_LAYER_TAP_GET_TAP_KEYCODE(keycode);
-    }
+        if (keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX && record->tap.count != 0) {
+            keycode = QK_MOD_TAP_GET_TAP_KEYCODE(keycode);
+        } else if (keycode >= QK_LAYER_TAP && keycode <= QK_LAYER_TAP_MAX && record->tap.count != 0) {
+            keycode = QK_LAYER_TAP_GET_TAP_KEYCODE(keycode);
+        }
 #endif
+    }
 
     if (fleetsing_numword_continue(keycode)) {
         fleetsing_numword_reset_timer();
