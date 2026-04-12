@@ -41,25 +41,6 @@
 #define _OPT_F6 RALT_T(KC_F6)
 #define _SFT_F11 RSFT_T(KC_F11)
 
-/*
- * Numbers-layer navigation helpers.
- *
- * These stay grouped by the physical positions they replace on that layer.
- */
-#define _CTL_LEFT RCTL_T(KC_LEFT)
-#define _GUI_RIGHT RGUI_T(KC_RIGHT)
-
-/*
- * Navigation-layer movement helpers.
- *
- * Keep the aliases in the same left-to-right order as the row for easier
- * visual comparison with the layer matrix below.
- */
-#define _MEH_LEFT MEH_T(KC_LEFT)
-#define _GUI_DOWN RGUI_T(KC_DOWN)
-#define _CTL_UP RCTL_T(KC_UP)
-#define _OPT_RIGHT RALT_T(KC_RIGHT)
-
 #ifndef POINTING_DEVICE_ENABLE
 /*
  * Keep the keymap buildable without the pointing feature enabled. These fall
@@ -106,29 +87,29 @@
  * Number-entry layer.
  *
  * This is the full dedicated numeric workspace: the right hand carries the
- * digit cluster while the left hand exposes common number-adjacent symbols and
- * editing helpers. QK_LLCK keeps the layer latched until it is pressed again
- * or QMK's layer-lock timeout expires.
+ * digit cluster while the left hand keeps the base-layer modifier chord
+ * positions for Shift / Alt / Ctrl / Gui and Meh / Hyper. QK_LLCK keeps the
+ * layer latched until it is pressed again or QMK's layer-lock timeout expires.
  */
 #define LAYOUT_LAYER_NUMBERS                                                                                                            \
     FI_DOT,     FI_COMM,    FI_MINS,    FI_PLUS,    FI_SLSH,            XXXXXXX,    FI_7,       FI_8,       FI_9,       XXXXXXX,        \
-    OSM(MOD_LSFT), OSM(MOD_RALT), _CTL_LEFT, _GUI_RIGHT, KC_DEL,        KC_BSPC,    FI_4,       FI_5,       FI_6,       FI_0,           \
-    FI_PERC,    FI_LPRN,    FI_RPRN,    FI_LBRC,    FI_RBRC,            XXXXXXX,    FI_1,       FI_2,       FI_3,       XXXXXXX,        \
+    KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    KC_DEL,             KC_BSPC,    FI_4,       FI_5,       FI_6,       FI_0,           \
+    FI_PERC,    FI_LPRN,    KC_MEH,     KC_HYPR,    FI_RPRN,            XXXXXXX,    FI_1,       FI_2,       FI_3,       XXXXXXX,        \
                             KC_SPC,     XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
 
 /*
  * Navigation layer.
  *
  * Intended for cursor movement and document navigation without leaving the home
- * block. The rightmost one-shot Shift lets selections extend without holding a
- * modifier continuously, and the tap Backspace on the base thumb remains
- * available through the transparent thumb positions when Navigation is not
- * latched.
+ * block. The left hand mirrors the base-layer modifier positions, while the
+ * right hand keeps plain HJKL arrows plus a one-shot Shift for selections. The
+ * tap Backspace on the base thumb remains available through the transparent
+ * thumb positions when Navigation is not latched.
  */
 #define LAYOUT_LAYER_NAVIGATION                                                                                                         \
-    XXXXXXX,    S(KC_TAB),  KC_UP,      KC_TAB,     KC_PGUP,            KC_PGUP,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
-    KC_LSFT,    KC_LEFT,    KC_DOWN,    KC_RGHT,    KC_DEL,             _MEH_LEFT,  _GUI_DOWN,  _CTL_UP,    _OPT_RIGHT, OSM(MOD_LSFT),  \
-    XXXXXXX,    KC_END,     KC_INS,     KC_HOME,    KC_PGDN,            KC_PGDN,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,        \
+    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    KC_PGUP,            XXXXXXX,    KC_PGDN,    KC_PGUP,    XXXXXXX,    XXXXXXX,        \
+    KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    KC_DEL,             KC_LEFT,    KC_DOWN,    KC_UP,      KC_RGHT,    OSM(MOD_LSFT),  \
+    XXXXXXX,    XXXXXXX,    KC_MEH,     KC_HYPR,    KC_PGDN,            XXXXXXX,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,        \
                             _______,    XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
 
 /*
@@ -272,12 +253,6 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
         case _CTL_F5:
         case _OPT_F6:
         case _SFT_F11:
-        case _CTL_LEFT:
-        case _GUI_RIGHT:
-        case _MEH_LEFT:
-        case _GUI_DOWN:
-        case _CTL_UP:
-        case _OPT_RIGHT:
             return 175;
 
         default:
