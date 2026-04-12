@@ -30,6 +30,7 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
     X(_L24)                                                \
     X(_L23)                                                \
     X(_L22)                                                \
+    X(_L35)                                                \
     X(_L32)                                                \
     X(_L33)                                                \
     X(_R35)                                                \
