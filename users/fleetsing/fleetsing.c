@@ -199,14 +199,13 @@ static bool fleetsing_numword_should_ignore(uint16_t keycode, keyrecord_t *recor
         case QK_TOGGLE_LAYER ... QK_TOGGLE_LAYER_MAX:
         case QK_LAYER_TAP_TOGGLE ... QK_LAYER_TAP_TOGGLE_MAX:
         case QK_ONE_SHOT_LAYER ... QK_ONE_SHOT_LAYER_MAX:
+        case QK_ONE_SHOT_MOD ... QK_ONE_SHOT_MOD_MAX:
 #ifdef TRI_LAYER_ENABLE
         case QK_TRI_LAYER_LOWER ... QK_TRI_LAYER_UPPER:
 #endif
 #ifdef LAYER_LOCK_ENABLE
         case QK_LAYER_LOCK:
 #endif
-        case OSM(MOD_LSFT):
-        case OSM(MOD_RALT):
         case KC_LSFT:
         case KC_RSFT:
         case KC_LCTL:

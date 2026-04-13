@@ -21,6 +21,19 @@
  * they make the matrix hard to scan in bulk. These aliases keep the layer
  * definitions focused on layout intent instead of modifier boilerplate.
  */
+
+/*
+ * Left-hand navigation-layer one-shot mod aliases.
+ *
+ * Keep these in the same left-to-right order as the layer row they occupy.
+ */
+#define _OSM_LSFT OSM(MOD_LSFT)
+#define _OSM_LALT OSM(MOD_LALT)
+#define _OSM_LCTL OSM(MOD_LCTL)
+#define _OSM_LGUI OSM(MOD_LGUI)
+#define _OSM_MEH OSM(MOD_MEH)
+#define _OSM_HYPR OSM(MOD_HYPR)
+
 /*
  * Left-hand function-layer mod-tap aliases.
  *
@@ -101,15 +114,16 @@
  * Navigation layer.
  *
  * Intended for cursor movement and document navigation without leaving the home
- * block. The left hand mirrors the base-layer modifier positions, while the
- * right hand keeps plain HJKL arrows plus a one-shot Shift for selections. The
- * tap Backspace on the base thumb remains available through the transparent
- * thumb positions when Navigation is not latched.
+ * block. The left hand keeps one-shot variants of the usual modifier block,
+ * including Meh and Hyper, so selection and shortcut chords can be queued
+ * before a movement key. The right hand keeps plain HJKL arrows for direct
+ * cursoring. The tap Backspace on the base thumb remains available through the
+ * transparent thumb positions when Navigation is not latched.
  */
 #define LAYOUT_LAYER_NAVIGATION                                                                                                         \
-    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    KC_PGUP,            XXXXXXX,    KC_PGDN,    KC_PGUP,    XXXXXXX,    XXXXXXX,        \
-    KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    KC_DEL,             KC_LEFT,    KC_DOWN,    KC_UP,      KC_RGHT,    OSM(MOD_LSFT),  \
-    XXXXXXX,    XXXXXXX,    KC_MEH,     KC_HYPR,    KC_PGDN,            XXXXXXX,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,        \
+    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    KC_PGDN,    KC_PGUP,    XXXXXXX,    XXXXXXX,        \
+    _OSM_LSFT,  _OSM_LALT,  _OSM_LCTL,  _OSM_LGUI,  KC_DEL,             KC_LEFT,    KC_DOWN,    KC_UP,      KC_RGHT,    XXXXXXX,              \
+    XXXXXXX,    XXXXXXX,    _OSM_MEH,   _OSM_HYPR,  XXXXXXX,            XXXXXXX,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,        \
                             _______,    XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
 
 /*
