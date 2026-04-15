@@ -222,7 +222,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * Dual-role timing is tuned by key role instead of one global term:
  * - home-row mods stay short to reduce accidental holds while typing
  * - lower-row modifier taps get a little more time for outward reaches
- * - thumb layer-taps stay slightly longer so Space/Tab/Enter/Backspace taps
+ * - thumb layer-taps stay longest so Space/Tab/Enter/Backspace taps
  *   remain easy while still making held layers feel deliberate
  *
  * Most cases are still keyed by physical position. When thumb roles move,
@@ -252,12 +252,12 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
 
         case _R41:
         case _R42:
-            return 185;
+            return 215;
 
         case _L41:
         case _L43:
         case _R43:
-            return 200;
+            return 230;
 
         case _SFT_F17:
         case _OPT_F18:
@@ -271,6 +271,25 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
 
         default:
             return TAPPING_TERM;
+    }
+}
+
+/*
+ * Keep permissive-hold enabled on non-thumb hold-taps, but make the thumb
+ * layer-taps less eager to resolve as hold during rolling input.
+ */
+bool get_permissive_hold(uint16_t keycode, keyrecord_t *record) {
+    (void)record;
+
+    switch (keycode) {
+        case _L41:
+        case _L43:
+        case _R41:
+        case _R42:
+        case _R43:
+            return false;
+        default:
+            return true;
     }
 }
 

@@ -69,12 +69,12 @@
 
 /*
  * Hold-tap tuning:
- * - PERMISSIVE_HOLD prefers the hold action when another key is pressed during the tap window
+ * - PERMISSIVE_HOLD_PER_KEY allows hold bias to stay on most dual-role keys while thumbs opt out
  * - CHORDAL_HOLD reduces accidental taps in fast multi-key rolls
  * - FLOW_TAP_TERM keeps very fast same-hand rolls feeling like taps
  * - RETRO_TAPPING lets a released hold-tap still count as a tap when appropriate
  */
-#define PERMISSIVE_HOLD
+#define PERMISSIVE_HOLD_PER_KEY
 #define CHORDAL_HOLD
 #define FLOW_TAP_TERM 150
 #define RETRO_TAPPING
