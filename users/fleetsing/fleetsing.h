@@ -82,20 +82,21 @@ typedef enum {
 #define FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(X) \
     X(S(FI_4))                                  \
     X(A(FI_2))                                  \
-    X(FI_DOT)                                   \
-    X(FI_COMM)                                  \
+    X(FI_SCLN)                                  \
+    X(FI_QUOT)                                  \
     X(FI_PLUS)                                  \
     X(FI_MINS)                                  \
-    X(S(FI_7))                                  \
     X(S(FI_QUOT))                               \
-    X(S(FI_DOT))                                \
+    X(S(FI_7))                                  \
+    X(S(FI_6))                                  \
     X(A(FI_DIAE))                               \
     X(S(FI_8))                                  \
     X(A(FI_8))                                  \
     X(S(FI_9))                                  \
     X(A(FI_9))                                  \
-    X(FI_QUOT)                                  \
-    X(S(FI_6))
+    X(FI_GRV)                                   \
+    X(A(FI_SECT))                               \
+    X(S(A(FI_SECT)))
 
 static inline bool fleetsing_is_symbol_combo_keycode(uint16_t keycode) {
     switch (keycode) {

@@ -49,7 +49,7 @@ static bool fleetsing_is_custom_retro_autoshift_position(uint16_t keycode) {
     switch (keycode) {
 #define FLEETSING_CASE(kc) case kc:
         FLEETSING_CUSTOM_RETRO_AUTOSHIFT_POSITION_CASES(FLEETSING_CASE)
-            return true;
+        return true;
 #undef FLEETSING_CASE
         default:
             return false;
@@ -79,25 +79,25 @@ static bool fleetsing_is_custom_retro_autoshift_position(uint16_t keycode) {
 static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifted) {
     switch (keycode) {
         case S(FI_4):
-            return shifted ? fleetsing_os_keycode(A(FI_4), FI_DLR) : S(FI_4);
+            return shifted ? fleetsing_os_keycode(A(FI_4), FI_DLR) : fleetsing_os_keycode(S(FI_4), FI_EURO);
         case A(FI_2):
-            return fleetsing_os_keycode(A(FI_2), FI_AT);
-        case FI_DOT:
-            return shifted ? S(FI_PLUS) : FI_DOT;
-        case FI_COMM:
-            return shifted ? S(FI_1) : FI_COMM;
+            return shifted ? FI_CIRC : fleetsing_os_keycode(A(FI_2), FI_AT);
+        case FI_SCLN:
+            return shifted ? FI_COLN : FI_SCLN;
+        case FI_QUOT:
+            return shifted ? FI_DQUO : FI_QUOT;
         case FI_PLUS:
             return shifted ? S(FI_0) : FI_PLUS;
         case FI_MINS:
             return shifted ? S(FI_MINS) : FI_MINS;
+        case S(FI_QUOT):
+            return shifted ? FI_PERC : S(FI_QUOT);
         case S(FI_7):
             return shifted ? fleetsing_os_keycode(S(A(FI_7)), FI_BSLS) : S(FI_7);
-        case S(FI_QUOT):
-            return shifted ? S(FI_3) : S(FI_QUOT);
-        case S(FI_DOT):
-            return shifted ? S(FI_COMM) : S(FI_DOT);
+        case S(FI_6):
+            return shifted ? FI_HASH : S(FI_6);
         case A(FI_DIAE):
-            return shifted ? fleetsing_os_keycode(A(FI_DIAE), FI_TILD) : fleetsing_os_keycode(A(FI_7), FI_PIPE);
+            return shifted ? fleetsing_os_keycode(A(FI_7), FI_PIPE) : fleetsing_os_keycode(A(FI_DIAE), FI_TILD);
         case S(FI_8):
             return shifted ? fleetsing_os_keycode(S(A(FI_8)), FI_LCBR) : S(FI_8);
         case A(FI_8):
@@ -106,10 +106,12 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
             return shifted ? fleetsing_os_keycode(S(A(FI_9)), FI_RCBR) : S(FI_9);
         case A(FI_9):
             return shifted ? fleetsing_os_keycode(S(FI_SECT), FI_RABK) : fleetsing_os_keycode(A(FI_9), FI_RBRC);
-        case FI_QUOT:
-            return shifted ? S(FI_2) : FI_QUOT;
-        case S(FI_6):
-            return shifted ? S(FI_5) : S(FI_6);
+        case FI_GRV:
+            return shifted ? A(FI_5) : FI_GRV;
+        case A(FI_SECT):
+            return shifted ? A(KC_BSLS) : A(FI_SECT);
+        case S(A(FI_SECT)):
+            return shifted ? A(FI_1) : S(A(FI_SECT));
         default:
             return (IS_RETRO(keycode)) ? keycode & 0xFF : keycode;
     }
@@ -182,8 +184,8 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     switch (keycode) {
 #define FLEETSING_CASE(kc) case kc:
         FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE)
-            register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
-            break;
+        register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
+        break;
 #undef FLEETSING_CASE
         default:
             if (shifted) {
