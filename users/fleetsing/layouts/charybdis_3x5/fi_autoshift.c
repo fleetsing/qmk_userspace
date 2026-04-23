@@ -35,6 +35,7 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
     X(_L33)                                                \
     X(_R35)                                                \
     X(_R33)                                                \
+    X(_R31)                                                \
     X(_R32)                                                \
     X(_R22)                                                \
     X(_R23)                                                \
@@ -112,6 +113,10 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
             return shifted ? A(KC_BSLS) : A(FI_SECT);
         case S(A(FI_SECT)):
             return shifted ? A(FI_1) : S(A(FI_SECT));
+        case _R31:
+            return shifted ? FI_QUES : FI_COMM;
+        case _R32:
+            return shifted ? FI_EXLM : FI_DOT;
         default:
             return (IS_RETRO(keycode)) ? keycode & 0xFF : keycode;
     }
@@ -182,10 +187,14 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     fleetsing_autoshift_resolution_haptic(shifted, record);
 
     switch (keycode) {
+        case _R31:
+        case _R32:
+            register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
+            break;
 #define FLEETSING_CASE(kc) case kc:
-        FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE)
-        register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
-        break;
+            FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE)
+            register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
+            break;
 #undef FLEETSING_CASE
         default:
             if (shifted) {
@@ -197,8 +206,8 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 
 void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     switch (keycode) {
-#define FLEETSING_CASE(kc) case kc:
-        FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE) {
+        case _R31:
+        case _R32: {
             uint16_t output_keycode = fleetsing_autoshift_output_keycode(keycode, shifted);
 
             unregister_code16(output_keycode);
@@ -207,6 +216,16 @@ void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record)
             }
             break;
         }
+#define FLEETSING_CASE(kc) case kc:
+            FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(FLEETSING_CASE) {
+                uint16_t output_keycode = fleetsing_autoshift_output_keycode(keycode, shifted);
+
+                unregister_code16(output_keycode);
+                if (shifted) {
+                    set_last_keycode(output_keycode);
+                }
+                break;
+            }
 #undef FLEETSING_CASE
         default:
             unregister_code16((IS_RETRO(keycode)) ? keycode & 0xFF : keycode);
