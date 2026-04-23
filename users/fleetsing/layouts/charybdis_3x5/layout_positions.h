@@ -19,29 +19,29 @@
 /*
  * Left-hand row 1.
  */
-#define _L15 FI_Q
-#define _L14 FI_W
-#define _L13 FI_E
-#define _L12 FI_R
-#define _L11 FI_T
+#define _L15 FI_W
+#define _L14 FI_G
+#define _L13 FI_D
+#define _L12 FI_F
+#define _L11 FI_B
 
 /*
  * Left-hand row 2.
  */
-#define _L25 LSFT_T(FI_A)
+#define _L25 LSFT_T(FI_R)
 #define _L24 RALT_T(FI_S)
-#define _L23 LCTL_T(FI_D)
-#define _L22 LGUI_T(FI_F)
-#define _L21 FI_G
+#define _L23 LCTL_T(FI_T)
+#define _L22 LGUI_T(FI_N)
+#define _L21 FI_K
 
 /*
  * Left-hand row 3.
  */
-#define _L35 LT(LAYER_POINTER, FI_Z)
-#define _L34 FI_X
-#define _L33 MEH_T(FI_C)
-#define _L32 HYPR_T(FI_V)
-#define _L31 FI_B
+#define _L35 LT(LAYER_POINTER, FI_X)
+#define _L34 FI_C
+#define _L33 MEH_T(FI_M)
+#define _L32 HYPR_T(FI_P)
+#define _L31 FI_V
 
 /*
  * Left-hand thumb cluster.
@@ -58,29 +58,29 @@
 /*
  * Right-hand row 1.
  */
-#define _R11 FI_Y
-#define _R12 FI_U
-#define _R13 FI_I
+#define _R11 FI_Q
+#define _R12 FI_H
+#define _R13 FI_U
 #define _R14 FI_O
-#define _R15 FI_P
+#define _R15 FI_Y
 
 /*
  * Right-hand row 2.
  */
-#define _R21 FI_H
-#define _R22 RGUI_T(FI_J)
-#define _R23 RCTL_T(FI_K)
-#define _R24 RALT_T(FI_L)
-#define _R25 RSFT_T(FI_ODIA)
+#define _R21 FI_J
+#define _R22 RGUI_T(FI_L)
+#define _R23 RCTL_T(FI_E)
+#define _R24 RALT_T(FI_A)
+#define _R25 RSFT_T(FI_I)
 
 /*
  * Right-hand row 3.
  */
-#define _R31 FI_N
-#define _R32 HYPR_T(FI_M)
-#define _R33 MEH_T(FI_COMM)
-#define _R34 FI_DOT
-#define _R35 LT(LAYER_POINTER, FI_ADIA)
+#define _R31 FI_COMM
+#define _R32 HYPR_T(FI_DOT)
+#define _R33 MEH_T(FI_ADIA)
+#define _R34 FI_ODIA
+#define _R35 LT(LAYER_POINTER, FI_Z)
 
 /*
  * Right-hand thumb cluster.
