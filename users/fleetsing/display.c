@@ -83,8 +83,8 @@ _Static_assert(sizeof(fleetsing_display_sync_t) <= RPC_M2S_BUFFER_SIZE, "Display
  * OLED glossary:
  * - Layer: highest currently active layer on the physical left-side dashboard.
  * - Lock: layers latched with QMK Layer Lock, not merely held.
- * - Ptr: two mode flags plus the selected scroll source, shown as "<SD> <L/R>".
- *        S = sniping, D = drag-scroll, L/R = left/right sensor becomes scroll.
+ * - Ptr: two mode flags, shown as "<SD>".
+ *        S = sniping, D = drag-scroll.
  * - DPI: effective pointer CPI for the current pointer mode.
  * - OS: persisted shortcut/symbol mode. MAC keeps Cmd-native behavior, while
  *       PC swaps Ctrl/GUI so the Command-position keys behave more like Ctrl.
@@ -184,18 +184,6 @@ static void fleetsing_format_host_leds(char *buffer, size_t size) {
 
 static void fleetsing_format_host_leds_state(uint8_t led_bits, char *buffer, size_t size) {
     snprintf(buffer, size, "%c%c%c", led_bits & 0x01 ? 'N' : '-', led_bits & 0x02 ? 'C' : '-', led_bits & 0x04 ? 'S' : '-');
-}
-
-/*
- * Friendly left/right wording is easier to scan on the pointer page and in
- * transient overlays than the compact single-letter form.
- */
-static const char *fleetsing_scroll_side_name(void) {
-#ifdef POINTING_DEVICE_COMBINED
-    return fleetsing_get_scroll_side() == FLEETSING_SCROLL_SIDE_RIGHT ? "RIGHT" : "LEFT";
-#else
-    return "-";
-#endif
 }
 
 /*
@@ -325,30 +313,9 @@ static void fleetsing_format_pointer_flags(char *buffer, size_t size) {
 #endif
 }
 
-/*
- * Userspace chooses which sensor becomes the scroll source when both sensors
- * are active. Show that choice as a single character to conserve space.
- */
-static void fleetsing_format_scroll_side(char *buffer, size_t size) {
-#ifdef POINTING_DEVICE_COMBINED
-    snprintf(buffer, size, "%c", fleetsing_get_scroll_side() == FLEETSING_SCROLL_SIDE_RIGHT ? 'R' : 'L');
-#else
-    snprintf(buffer, size, "-");
-#endif
-}
-
-/*
- * Merge the pointer mode flags and scroll-side choice into the compact OLED
- * form used on the master screen, for example "S- L" or "-D R".
- */
+/* Render the compact two-flag pointer status used on the dashboard. */
 static void fleetsing_format_pointer_mode(char *buffer, size_t size) {
-    char flags[3];
-    char side[2];
-
-    /* Compress pointer state into a compact screen-friendly summary such as "S- L". */
-    fleetsing_format_pointer_flags(flags, sizeof(flags));
-    fleetsing_format_scroll_side(side, sizeof(side));
-    snprintf(buffer, size, "%s %s", flags, side);
+    fleetsing_format_pointer_flags(buffer, size);
 }
 
 static uint8_t fleetsing_pointer_flags_state(void) {
@@ -361,24 +328,11 @@ static uint8_t fleetsing_pointer_flags_state(void) {
         flags |= (uint8_t)1 << 1;
     }
 #endif
-#ifdef POINTING_DEVICE_COMBINED
-    if (fleetsing_get_scroll_side() == FLEETSING_SCROLL_SIDE_RIGHT) {
-        flags |= (uint8_t)1 << 2;
-    }
-#endif
     return flags;
 }
 
 static void fleetsing_format_pointer_mode_state(uint8_t flags, char *buffer, size_t size) {
-    snprintf(buffer, size, "%c%c %c", flags & ((uint8_t)1 << 0) ? 'S' : '-', flags & ((uint8_t)1 << 1) ? 'D' : '-', flags & ((uint8_t)1 << 2) ? 'R' : 'L');
-}
-
-static const char *fleetsing_scroll_side_name_state(uint8_t flags) {
-#ifdef POINTING_DEVICE_COMBINED
-    return flags & ((uint8_t)1 << 2) ? "RIGHT" : "LEFT";
-#else
-    return "-";
-#endif
+    snprintf(buffer, size, "%c%c", flags & ((uint8_t)1 << 0) ? 'S' : '-', flags & ((uint8_t)1 << 1) ? 'D' : '-');
 }
 
 /*
@@ -650,7 +604,6 @@ typedef struct {
     char                          last_lock[FLEETSING_OLED_VALUE_SIZE];
     char                          last_os[5];
     char                          last_osm[5];
-    char                          last_scroll[6];
     uint16_t                      last_dpi;
     uint32_t                      timer;
 } fleetsing_oled_overlay_state_t;
@@ -717,7 +670,6 @@ static void fleetsing_update_oled_overlay(void) {
     char     lock[FLEETSING_OLED_VALUE_SIZE];
     char     os[5];
     char     osm[5];
-    char     scroll[6];
     char     value[FLEETSING_OLED_VALUE_SIZE];
     uint8_t  layer       = get_highest_layer(layer_state);
     uint16_t dpi         = fleetsing_get_active_pointer_dpi();
@@ -726,14 +678,12 @@ static void fleetsing_update_oled_overlay(void) {
     fleetsing_format_locked_layers(lock, sizeof(lock));
     fleetsing_format_os_mode(os, sizeof(os));
     fleetsing_format_oneshot_mods(osm, sizeof(osm));
-    snprintf(scroll, sizeof(scroll), "%s", fleetsing_scroll_side_name());
 
     if (!fleetsing_oled_overlay_state.initialized) {
         fleetsing_oled_overlay_state.last_layer = layer;
         snprintf(fleetsing_oled_overlay_state.last_lock, sizeof(fleetsing_oled_overlay_state.last_lock), "%s", lock);
         snprintf(fleetsing_oled_overlay_state.last_os, sizeof(fleetsing_oled_overlay_state.last_os), "%s", os);
         snprintf(fleetsing_oled_overlay_state.last_osm, sizeof(fleetsing_oled_overlay_state.last_osm), "%s", osm);
-        snprintf(fleetsing_oled_overlay_state.last_scroll, sizeof(fleetsing_oled_overlay_state.last_scroll), "%s", scroll);
         fleetsing_oled_overlay_state.last_dpi    = dpi;
         fleetsing_oled_overlay_state.initialized = true;
         fleetsing_oled_overlay_state.active      = false;
@@ -750,9 +700,6 @@ static void fleetsing_update_oled_overlay(void) {
         has_changes = true;
     }
     if (strcmp(fleetsing_oled_overlay_state.last_osm, osm) != 0) {
-        has_changes = true;
-    }
-    if (strcmp(fleetsing_oled_overlay_state.last_scroll, scroll) != 0) {
         has_changes = true;
     }
     if (fleetsing_oled_overlay_state.last_dpi != dpi) {
@@ -778,9 +725,6 @@ static void fleetsing_update_oled_overlay(void) {
             snprintf(value, sizeof(value), "%s", strcmp(osm, "----") == 0 ? "CLEAR" : osm);
             fleetsing_append_oled_overlay_item("OSM", value);
         }
-        if (strcmp(fleetsing_oled_overlay_state.last_scroll, scroll) != 0) {
-            fleetsing_append_oled_overlay_item("Scroll", scroll);
-        }
         if (fleetsing_oled_overlay_state.last_dpi != dpi) {
             snprintf(value, sizeof(value), "%u", dpi);
             fleetsing_append_oled_overlay_item("DPI", value);
@@ -794,7 +738,6 @@ static void fleetsing_update_oled_overlay(void) {
     snprintf(fleetsing_oled_overlay_state.last_lock, sizeof(fleetsing_oled_overlay_state.last_lock), "%s", lock);
     snprintf(fleetsing_oled_overlay_state.last_os, sizeof(fleetsing_oled_overlay_state.last_os), "%s", os);
     snprintf(fleetsing_oled_overlay_state.last_osm, sizeof(fleetsing_oled_overlay_state.last_osm), "%s", osm);
-    snprintf(fleetsing_oled_overlay_state.last_scroll, sizeof(fleetsing_oled_overlay_state.last_scroll), "%s", scroll);
     fleetsing_oled_overlay_state.last_dpi = dpi;
 }
 
@@ -975,8 +918,6 @@ static void fleetsing_render_pointer_panel(void) {
     fleetsing_render_pair("Snip", "OFF");
     fleetsing_render_pair("Drag", "OFF");
 #endif
-    fleetsing_render_pair("Scroll", fleetsing_scroll_side_name());
-
     snprintf(value, sizeof(value), "%u", fleetsing_get_active_pointer_dpi());
     fleetsing_render_pair("DPI", value);
 }
@@ -988,7 +929,6 @@ static void fleetsing_render_pointer_panel_remote(void) {
     fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
     fleetsing_render_pair("Snip", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 0)) != 0));
     fleetsing_render_pair("Drag", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 1)) != 0));
-    fleetsing_render_pair("Scroll", fleetsing_scroll_side_name_state(fleetsing_display_remote_state.pointer_flags));
     snprintf(value, sizeof(value), "%u", fleetsing_display_remote_state.dpi);
     fleetsing_render_pair("DPI", value);
 #endif
@@ -1235,9 +1175,9 @@ void fleetsing_display_post_init(void) {}
 void fleetsing_display_sync_task(void) {}
 #endif
 
-/* The displays are physically mounted upside down relative to QMK defaults. */
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    return OLED_ROTATION_180;
+    (void)rotation;
+    return is_keyboard_left() ? FLEETSING_OLED_ROTATION_LEFT : FLEETSING_OLED_ROTATION_RIGHT;
 }
 
 #ifdef OLED_ENABLE
@@ -1403,9 +1343,9 @@ bool oled_task_user(void) {
             snprintf(snapshot, sizeof(snapshot), "R|M|%s|%s|%s", alert, os, field_c);
         } else if (fleetsing_pointer_page_is_active()) {
             if (is_keyboard_master()) {
-                snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%s|%u", fleetsing_toggle_name(charybdis_get_pointer_sniping_enabled()), fleetsing_toggle_name(charybdis_get_pointer_dragscroll_enabled()), fleetsing_scroll_side_name(), fleetsing_get_active_pointer_dpi());
+                snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%u", fleetsing_toggle_name(charybdis_get_pointer_sniping_enabled()), fleetsing_toggle_name(charybdis_get_pointer_dragscroll_enabled()), fleetsing_get_active_pointer_dpi());
             } else {
-                snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%s|%u", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 0)) != 0), fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 1)) != 0), fleetsing_scroll_side_name_state(fleetsing_display_remote_state.pointer_flags), fleetsing_display_remote_state.dpi);
+                snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%u", fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 0)) != 0), fleetsing_toggle_name((fleetsing_display_remote_state.pointer_flags & ((uint8_t)1 << 1)) != 0), fleetsing_display_remote_state.dpi);
             }
         } else if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
             fleetsing_format_numword_remaining(field_c, sizeof(field_c));

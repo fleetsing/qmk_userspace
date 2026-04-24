@@ -108,9 +108,6 @@ void fleetsing_haptic_play_event(fleetsing_haptic_event_t event) {
     uint8_t effect     = DRV2605L_DEFAULT_MODE;
 
     switch (event) {
-        case FLEETSING_HAPTIC_SCROLL_SIDE:
-            effect = DRV2605L_EFFECT_SOFT_BUMP_60;
-            break;
         case FLEETSING_HAPTIC_POINTER_LAYER_ON:
             effect = DRV2605L_EFFECT_SHARP_TICK_1_100;
             break;

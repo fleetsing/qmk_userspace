@@ -178,8 +178,8 @@
  * Pointer and mouse-button layer.
  *
  * This layer does not choose the active sensor DPI directly. It toggles
- * Charybdis sniping behavior and exposes sniping-DPI controls while userspace
- * decides which sensor's motion is converted into scroll.
+ * Charybdis sniping behavior and exposes sniping-DPI controls while the left
+ * encoder takes over coarse scroll-wheel duties.
  *
  * The mirrored outer-corner boot keys are guarded so transient pointer-layer
  * entry cannot trigger the bootloader accidentally.
@@ -188,7 +188,7 @@
     /* Pointer-layer DPI controls are sniping-DPI controls because this layer auto-enables sniping mode. */                             \
     BOOT_SAFE,  XXXXXXX,    XXXXXXX,    S_D_RMOD,   S_D_MOD,            S_D_MOD,    S_D_RMOD,   XXXXXXX,    XXXXXXX,    BOOT_SAFE,      \
     KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    XXXXXXX,            XXXXXXX,    KC_RGUI,    KC_RCTL,    KC_RALT,    KC_RSFT,        \
-    _______,    DRGSCRL,    XXXXXXX,    SET_MS_L,   XXXXXXX,            XXXXXXX,    SET_MS_R,   XXXXXXX,    DRGSCRL,    _______,        \
+    _______,    DRGSCRL,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    XXXXXXX,    XXXXXXX,    DRGSCRL,    _______,        \
                             MS_BTN2,    MS_BTN1,    QK_LLCK,            QK_LLCK,    MS_BTN1,    MS_BTN2
 
 /*
@@ -217,6 +217,21 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [LAYER_POINTER]    = LAYOUT_wrapper(LAYOUT_LAYER_POINTER),
     [LAYER_MACRO]      = LAYOUT_wrapper(LAYOUT_LAYER_MACRO),
 };
+
+#if defined(ENCODER_MAP_ENABLE)
+const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
+    /* Keep the one confirmed encoder on a simple arrow-key test mapping for now. */
+    [LAYER_BASE]       = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_NUMWORD]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_NUMBERS]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_NAVIGATION] = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_FUNCTION]   = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_SYMBOLS]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_MEDIA]      = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_POINTER]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_MACRO]      = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+};
+#endif
 
 /*
  * Dual-role timing is tuned by key role instead of one global term:

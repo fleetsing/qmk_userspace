@@ -30,8 +30,6 @@ enum custom_keycodes {
      */
     NUMWORD = SAFE_RANGE,
     NUMLOCK,
-    SET_MS_L,
-    SET_MS_R,
     BOOT_SAFE,
     OS_MAC,
     OS_PC,
@@ -50,19 +48,12 @@ enum custom_keycodes {
 };
 
 typedef enum {
-    /* This state is runtime-only; it is not persisted in EEPROM. */
-    FLEETSING_SCROLL_SIDE_LEFT = 0,
-    FLEETSING_SCROLL_SIDE_RIGHT,
-} fleetsing_scroll_side_t;
-
-typedef enum {
     FLEETSING_OS_MAC = 0,
     FLEETSING_OS_PC,
 } fleetsing_os_mode_t;
 
 typedef enum {
-    FLEETSING_HAPTIC_SCROLL_SIDE = 0,
-    FLEETSING_HAPTIC_POINTER_LAYER_ON,
+    FLEETSING_HAPTIC_POINTER_LAYER_ON = 0,
     FLEETSING_HAPTIC_POINTER_LAYER_OFF,
     FLEETSING_HAPTIC_OS_MAC,
     FLEETSING_HAPTIC_OS_PC,
@@ -112,12 +103,9 @@ static inline bool fleetsing_is_symbol_combo_keycode(uint16_t keycode) {
 /*
  * Shared state and hook helpers used across the userspace modules.
  *
- * Scroll-side selection is userspace-owned. Sensor DPI is intentionally not:
- * that remains in the Charybdis firmware layer so runtime DPI/sniping keycodes
- * and EEPROM-backed state stay coherent.
+ * Sensor DPI is intentionally kept in the Charybdis firmware layer so runtime
+ * DPI/sniping keycodes and EEPROM-backed state stay coherent.
  */
-void                    fleetsing_set_scroll_side(fleetsing_scroll_side_t side);
-fleetsing_scroll_side_t fleetsing_get_scroll_side(void);
 fleetsing_os_mode_t     fleetsing_get_os_mode(void);
 void                    fleetsing_set_os_mode(fleetsing_os_mode_t mode);
 const char             *fleetsing_get_os_mode_name(void);

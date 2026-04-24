@@ -1,4 +1,5 @@
 #include "fleetsing.h"
+#include "gpio.h"
 #include <string.h>
 
 #ifdef SPLIT_TRANSACTION_IDS_USER
@@ -12,7 +13,6 @@
  * the QMK hooks here. That makes it easier to see which hook owns which
  * behavior and avoids accidental hook duplication across files.
  */
-static fleetsing_scroll_side_t fleetsing_scroll_side = FLEETSING_SCROLL_SIDE_LEFT;
 static layer_state_t           fleetsing_locked_layers_before;
 static bool                    fleetsing_layer_lock_pending;
 static bool                    fleetsing_numword_active;
@@ -34,9 +34,23 @@ typedef struct {
     uint16_t remaining_ms;
 } fleetsing_numword_sync_t;
 
+#define FLEETSING_LEFT_KNOB_PRESS_PIN B2
+
+#ifndef FLEETSING_LEFT_KNOB_DEBOUNCE
+#    define FLEETSING_LEFT_KNOB_DEBOUNCE 10
+#endif
+
 #ifdef SPLIT_TRANSACTION_IDS_USER
 static fleetsing_numword_sync_t fleetsing_numword_remote_state;
+
+typedef struct {
+    bool is_down;
+} fleetsing_left_knob_sync_t;
 #endif
+
+static bool     fleetsing_left_knob_raw_is_down;
+static bool     fleetsing_left_knob_is_down;
+static uint16_t fleetsing_left_knob_last_change;
 
 static void fleetsing_numword_reset_timer(void) {
 #if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
@@ -289,14 +303,6 @@ static void fleetsing_maintenance_task(void) {
     }
 }
 
-void fleetsing_set_scroll_side(fleetsing_scroll_side_t side) {
-    fleetsing_scroll_side = side;
-}
-
-fleetsing_scroll_side_t fleetsing_get_scroll_side(void) {
-    return fleetsing_scroll_side;
-}
-
 /*
  * OS mode is derived from QMK's persisted Ctrl/GUI swap flags.
  *
@@ -442,8 +448,6 @@ bool remember_last_key_user(uint16_t keycode, keyrecord_t *record, uint8_t *reme
     switch (keycode) {
         case NUMWORD:
         case NUMLOCK:
-        case SET_MS_L:
-        case SET_MS_R:
         case BOOT_SAFE:
         case OS_MAC:
         case OS_PC:
@@ -615,6 +619,16 @@ static void fleetsing_numword_sync_handler(uint8_t initiator2target_buffer_size,
     }
 }
 
+static void fleetsing_left_knob_sync_handler(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
+    (void)initiator2target_buffer_size;
+    (void)initiator2target_buffer;
+
+    if (target2initiator_buffer_size == sizeof(fleetsing_left_knob_sync_t)) {
+        fleetsing_left_knob_sync_t state = {.is_down = fleetsing_left_knob_is_down};
+        memcpy(target2initiator_buffer, &state, sizeof(state));
+    }
+}
+
 static void fleetsing_numword_sync_task(void) {
     if (!is_keyboard_master()) {
         return;
@@ -638,6 +652,19 @@ static void fleetsing_numword_sync_task(void) {
     }
 }
 #endif
+
+static void fleetsing_left_knob_scan(void) {
+    bool is_down = is_keyboard_left() && !gpio_read_pin(FLEETSING_LEFT_KNOB_PRESS_PIN);
+
+    if (is_down != fleetsing_left_knob_raw_is_down) {
+        fleetsing_left_knob_raw_is_down = is_down;
+        fleetsing_left_knob_last_change = timer_read();
+    }
+
+    if (timer_elapsed(fleetsing_left_knob_last_change) >= FLEETSING_LEFT_KNOB_DEBOUNCE) {
+        fleetsing_left_knob_is_down = fleetsing_left_knob_raw_is_down;
+    }
+}
 
 bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     /*
@@ -762,6 +789,36 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+    /*
+     * The encoder press is currently wired to the former left-trackball MOSI
+     * line instead of the matrix, so treat it as a direct active-low GPIO
+     * button and forward the debounced state to the master half when needed.
+     */
+    static bool knob_press_was_down;
+    bool        knob_press_is_down = false;
+
+    fleetsing_left_knob_scan();
+
+    if (is_keyboard_master()) {
+        if (is_keyboard_left()) {
+            knob_press_is_down = fleetsing_left_knob_is_down;
+#ifdef SPLIT_TRANSACTION_IDS_USER
+        } else {
+            fleetsing_left_knob_sync_t remote_state = {0};
+            if (transaction_rpc_recv(RPC_ID_USER_LEFT_KNOB_STATE, sizeof(remote_state), &remote_state)) {
+                knob_press_is_down = remote_state.is_down;
+            }
+        }
+#else
+        }
+#endif
+
+        if (knob_press_is_down && !knob_press_was_down && get_highest_layer(layer_state | default_layer_state) == LAYER_BASE) {
+            tap_code(KC_ENT);
+        }
+        knob_press_was_down = knob_press_is_down;
+    }
+
     fleetsing_maintenance_task();
     fleetsing_numword_task();
 #ifdef SPLIT_TRANSACTION_IDS_USER
@@ -784,8 +841,15 @@ void keyboard_post_init_user(void) {
     /* Start the OLED idle timer in the "recently active" state after boot. */
     fleetsing_display_note_activity();
 
+    if (is_keyboard_left()) {
+        gpio_set_pin_input_high(FLEETSING_LEFT_KNOB_PRESS_PIN);
+        fleetsing_left_knob_raw_is_down = !gpio_read_pin(FLEETSING_LEFT_KNOB_PRESS_PIN);
+        fleetsing_left_knob_is_down     = fleetsing_left_knob_raw_is_down;
+    }
+
 #ifdef SPLIT_TRANSACTION_IDS_USER
     transaction_register_rpc(RPC_ID_USER_NUMWORD_SYNC, fleetsing_numword_sync_handler);
+    transaction_register_rpc(RPC_ID_USER_LEFT_KNOB_STATE, fleetsing_left_knob_sync_handler);
 #endif
     fleetsing_display_post_init();
 

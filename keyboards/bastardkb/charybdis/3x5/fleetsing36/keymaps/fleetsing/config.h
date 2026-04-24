@@ -42,7 +42,7 @@
 #define COMBO_MUST_TAP_PER_COMBO
 
 /* Reserve userspace split-RPC ids for synced OLED-facing runtime state. */
-#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC, RPC_ID_USER_DISPLAY_SYNC
+#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC, RPC_ID_USER_DISPLAY_SYNC, RPC_ID_USER_LEFT_KNOB_STATE
 /*
  * The OLED display-sync payload includes several short overlay items, which is
  * larger than QMK's default 32-byte split RPC buffer.
@@ -105,13 +105,7 @@
  */
 #define CHARYBDIS_MINIMUM_DEFAULT_DPI PMW33XX_CPI
 #define CHARYBDIS_MINIMUM_SNIPING_DPI 600
-#undef POINTING_DEVICE_RIGHT
-/* Both sensors stay active; userspace chooses which side becomes scroll. */
-#define POINTING_DEVICE_COMBINED
-
-/* The right sensor is mirrored relative to the left and the whole assembly is rotated. */
-#define POINTING_DEVICE_INVERT_X_RIGHT
-#define POINTING_DEVICE_ROTATION_90
+/* The remaining right-hand trackball uses the stock Charybdis single-sensor path. */
 
 /* Five quick taps on a one-shot key locks it; otherwise one-shot state times out after 3 seconds. */
 #define ONESHOT_TAP_TOGGLE 5
@@ -119,9 +113,111 @@
 
 #ifdef OLED_ENABLE
 /* OLED configuration. */
-/* SH1107 + 64x128 matches the physical display modules on this board. */
-#    define OLED_IC OLED_IC_SH1107
-#    define OLED_DISPLAY_64X128
+/*
+ * OLED profile selection.
+ *
+ * Keep the profile switch here so trying a different OLED population only
+ * requires changing one define.
+ *
+ * In this workspace, the original BastardKB modules behaved like SH1107
+ * 64x128 panels. The current replacement 4-pin modules are confirmed working
+ * as SSD1312 128x64, together with the local SSD1312 render-path fixes in the
+ * firmware OLED driver.
+ */
+#    define FLEETSING_OLED_PROFILE_SH1107_64X128 0
+#    define FLEETSING_OLED_PROFILE_SH1107_128X128 1
+#    define FLEETSING_OLED_PROFILE_SSD1312_128X64 2
+#    define FLEETSING_OLED_PROFILE_SSD1306_128X64 3
+#    define FLEETSING_OLED_PROFILE_SH1106_128X64 4
+
+/*
+ * Some SH1107 modules that share the same physical form factor still differ in
+ * how their COM outputs are wired to the glass. Keep this as a second-stage
+ * switch so we can try panel-layout variants without changing driver family or
+ * geometry.
+ */
+#    define FLEETSING_OLED_SH1107_LAYOUT_ALT 0
+#    define FLEETSING_OLED_SH1107_LAYOUT_ALT_LR 1
+#    define FLEETSING_OLED_SH1107_LAYOUT_SEQ 2
+#    define FLEETSING_OLED_SH1107_LAYOUT_SEQ_LR 3
+
+/*
+ * SSD1312 replacement modules can still differ in scan direction from the
+ * original BastardKB parts. Keep explicit flip/rotation switches here so
+ * orientation fixes stay in keymap config instead of requiring driver edits.
+ */
+#    ifndef FLEETSING_OLED_SSD1312_ROTATION_LEFT
+#        define FLEETSING_OLED_SSD1312_ROTATION_LEFT OLED_ROTATION_90
+#    endif
+#    ifndef FLEETSING_OLED_SSD1312_ROTATION_RIGHT
+#        define FLEETSING_OLED_SSD1312_ROTATION_RIGHT OLED_ROTATION_90
+#    endif
+#    ifndef FLEETSING_OLED_SSD1312_FLIP_SEGMENT
+#        define FLEETSING_OLED_SSD1312_FLIP_SEGMENT 0
+#    endif
+#    ifndef FLEETSING_OLED_SSD1312_FLIP_COM
+#        define FLEETSING_OLED_SSD1312_FLIP_COM 0
+#    endif
+
+#    ifndef FLEETSING_OLED_PROFILE
+/* Current confirmed default for the replacement OLED batch. */
+#        define FLEETSING_OLED_PROFILE FLEETSING_OLED_PROFILE_SSD1312_128X64
+#    endif
+
+#    ifndef FLEETSING_OLED_SH1107_LAYOUT
+/* Next high-probability guess after mirrored-looking SH1107 output. */
+#        define FLEETSING_OLED_SH1107_LAYOUT FLEETSING_OLED_SH1107_LAYOUT_ALT_LR
+#    endif
+
+#    if FLEETSING_OLED_SH1107_LAYOUT == FLEETSING_OLED_SH1107_LAYOUT_ALT
+#        define FLEETSING_OLED_SH1107_COM_PINS COM_PINS_ALT
+#    elif FLEETSING_OLED_SH1107_LAYOUT == FLEETSING_OLED_SH1107_LAYOUT_ALT_LR
+#        define FLEETSING_OLED_SH1107_COM_PINS COM_PINS_ALT_LR
+#    elif FLEETSING_OLED_SH1107_LAYOUT == FLEETSING_OLED_SH1107_LAYOUT_SEQ
+#        define FLEETSING_OLED_SH1107_COM_PINS COM_PINS_SEQ
+#    elif FLEETSING_OLED_SH1107_LAYOUT == FLEETSING_OLED_SH1107_LAYOUT_SEQ_LR
+#        define FLEETSING_OLED_SH1107_COM_PINS COM_PINS_SEQ_LR
+#    else
+#        error "Unsupported FLEETSING_OLED_SH1107_LAYOUT"
+#    endif
+
+#    if FLEETSING_OLED_SSD1312_FLIP_SEGMENT
+#        define OLED_FLIP_SEGMENT
+#    endif
+#    if FLEETSING_OLED_SSD1312_FLIP_COM
+#        define OLED_FLIP_COM
+#    endif
+
+#    if FLEETSING_OLED_PROFILE == FLEETSING_OLED_PROFILE_SH1107_64X128
+#        define OLED_IC OLED_IC_SH1107
+#        define OLED_DISPLAY_64X128
+#        define OLED_COM_PINS FLEETSING_OLED_SH1107_COM_PINS
+#        define FLEETSING_OLED_ROTATION_LEFT OLED_ROTATION_270
+#        define FLEETSING_OLED_ROTATION_RIGHT OLED_ROTATION_180
+#    elif FLEETSING_OLED_PROFILE == FLEETSING_OLED_PROFILE_SH1107_128X128
+#        define OLED_IC OLED_IC_SH1107
+#        define OLED_DISPLAY_128X128
+#        define OLED_COM_PINS FLEETSING_OLED_SH1107_COM_PINS
+#        define FLEETSING_OLED_ROTATION_LEFT OLED_ROTATION_270
+#        define FLEETSING_OLED_ROTATION_RIGHT OLED_ROTATION_180
+#    elif FLEETSING_OLED_PROFILE == FLEETSING_OLED_PROFILE_SSD1312_128X64
+#        define OLED_IC OLED_IC_SSD1312
+#        define OLED_DISPLAY_128X64
+#        define FLEETSING_OLED_ROTATION_LEFT FLEETSING_OLED_SSD1312_ROTATION_LEFT
+#        define FLEETSING_OLED_ROTATION_RIGHT FLEETSING_OLED_SSD1312_ROTATION_RIGHT
+#    elif FLEETSING_OLED_PROFILE == FLEETSING_OLED_PROFILE_SSD1306_128X64
+#        define OLED_IC OLED_IC_SSD1306
+#        define OLED_DISPLAY_128X64
+#        define FLEETSING_OLED_ROTATION_LEFT OLED_ROTATION_180
+#        define FLEETSING_OLED_ROTATION_RIGHT OLED_ROTATION_180
+#    elif FLEETSING_OLED_PROFILE == FLEETSING_OLED_PROFILE_SH1106_128X64
+#        define OLED_IC OLED_IC_SH1106
+#        define OLED_DISPLAY_128X64
+#        define FLEETSING_OLED_ROTATION_LEFT OLED_ROTATION_180
+#        define FLEETSING_OLED_ROTATION_RIGHT OLED_ROTATION_180
+#    else
+#        error "Unsupported FLEETSING_OLED_PROFILE"
+#    endif
 /*
  * Keep QMK's built-in timeout disabled for this keymap.
  *

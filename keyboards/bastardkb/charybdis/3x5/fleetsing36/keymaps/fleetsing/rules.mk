@@ -2,6 +2,9 @@
 USER_NAME := fleetsing
 # VIA is intentionally disabled; this keymap is source-controlled rather than GUI-configured.
 VIA_ENABLE = no
+# Left half now carries a rotary encoder in place of the former trackball.
+ENCODER_ENABLE = yes
+ENCODER_MAP_ENABLE = yes
 # Charybdis uses PMW3360 sensors for the trackballs.
 POINTING_DEVICE_DRIVER = pmw3360
 # Enables MS_BTN* keycodes and the mousekey helpers used on the pointer layer.
