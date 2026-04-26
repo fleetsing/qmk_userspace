@@ -31,6 +31,7 @@ layer_state_t fleetsing_pointing_layer_state_set(layer_state_t state) {
 #ifdef POINTING_DEVICE_ENABLE
     bool sniping_was_enabled = charybdis_get_pointer_sniping_enabled();
     bool sniping_enabled     = layer_state_cmp(state, FLEETSING_AUTO_SNIPING_LAYER);
+    bool dragscroll_enabled  = layer_state_cmp(state, LAYER_SCROLL_LEFT) || layer_state_cmp(state, LAYER_SCROLL_RIGHT);
 
     /*
      * Pointer-layer activation drives sniping mode, but the actual CPI change
@@ -40,6 +41,7 @@ layer_state_t fleetsing_pointing_layer_state_set(layer_state_t state) {
     if (sniping_was_enabled != sniping_enabled) {
         fleetsing_haptic_play_event(sniping_enabled ? FLEETSING_HAPTIC_POINTER_LAYER_ON : FLEETSING_HAPTIC_POINTER_LAYER_OFF);
     }
+    charybdis_set_pointer_dragscroll_enabled(dragscroll_enabled);
 #endif
 
     return state;

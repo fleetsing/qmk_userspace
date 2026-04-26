@@ -29,6 +29,7 @@
 #define FLEETSING_OLED_MASTER_TOP_PAD 2
 #define FLEETSING_OLED_OFFHAND_TOP_PAD 2
 #define FLEETSING_OLED_TEMP_TOP_PAD 2
+#define FLEETSING_OLED_LEFT_INSET 1
 
 typedef struct {
     char title[10];
@@ -127,6 +128,9 @@ static const char *fleetsing_layer_name(uint8_t layer) {
             return "PTR";
         case LAYER_MACRO:
             return "MACRO";
+        case LAYER_SCROLL_LEFT:
+        case LAYER_SCROLL_RIGHT:
+            return "SCR";
         default:
             return "UNDEF";
     }
@@ -158,15 +162,22 @@ static void fleetsing_format_os_mode_state(uint8_t mode, char *buffer, size_t si
  * The blank line is intentional. It trades a bit of density for much faster
  * visual parsing on the small screen.
  */
+static void fleetsing_render_line(const char *text) {
+    for (uint8_t i = 0; i < FLEETSING_OLED_LEFT_INSET; ++i) {
+        oled_write(" ", false);
+    }
+    oled_write_ln(text, false);
+}
+
 static void fleetsing_render_pair(const char *label, const char *value) {
-    oled_write_ln(label, false);
-    oled_write_ln(value, false);
-    oled_write_ln("", false);
+    fleetsing_render_line(label);
+    fleetsing_render_line(value);
+    fleetsing_render_line("");
 }
 
 static void fleetsing_render_top_padding(uint8_t lines) {
     for (uint8_t i = 0; i < lines; ++i) {
-        oled_write_ln("", false);
+        fleetsing_render_line("");
     }
 }
 
@@ -631,12 +642,7 @@ static void fleetsing_append_oled_overlay_item(const char *title, const char *va
     fleetsing_oled_overlay_state.count++;
 }
 
-static bool fleetsing_overlay_is_active(void) {
-#ifdef SPLIT_TRANSACTION_IDS_USER
-    if (!is_keyboard_master() && !is_keyboard_left()) {
-        return fleetsing_display_remote_state.overlay_active;
-    }
-#endif
+static bool fleetsing_local_overlay_is_active(void) {
     if (!fleetsing_oled_overlay_state.active) {
         return false;
     }
@@ -647,6 +653,15 @@ static bool fleetsing_overlay_is_active(void) {
     }
 
     return true;
+}
+
+static bool fleetsing_overlay_is_active(void) {
+#ifdef SPLIT_TRANSACTION_IDS_USER
+    if (!is_keyboard_master() && !is_keyboard_left()) {
+        return fleetsing_display_remote_state.overlay_active;
+    }
+#endif
+    return fleetsing_local_overlay_is_active();
 }
 
 /*
@@ -979,8 +994,9 @@ static void fleetsing_render_numword_panel(void) {
     fleetsing_format_numword_remaining(value, sizeof(value));
     fleetsing_render_pair("Exit In", value);
     fleetsing_format_numword_progress(value, sizeof(value));
+    /* Keep the full-width bar flush-left so the added display inset does not wrap it. */
     oled_write_ln(value, false);
-    oled_write_ln("", false);
+    fleetsing_render_line("");
     fleetsing_render_pair("Lock", "NUM");
 }
 
@@ -991,8 +1007,8 @@ static void fleetsing_render_numword_panel(void) {
  */
 static void fleetsing_render_overlay(void) {
     fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
-    oled_write_ln("Changed", false);
-    oled_write_ln("", false);
+    fleetsing_render_line("Changed");
+    fleetsing_render_line("");
 
     for (uint8_t i = 0; i < fleetsing_oled_overlay_state.count; ++i) {
         fleetsing_render_pair(fleetsing_oled_overlay_state.items[i].title, fleetsing_oled_overlay_state.items[i].value);
@@ -1002,8 +1018,8 @@ static void fleetsing_render_overlay(void) {
 static void fleetsing_render_overlay_remote(void) {
 #ifdef SPLIT_TRANSACTION_IDS_USER
     fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
-    oled_write_ln("Changed", false);
-    oled_write_ln("", false);
+    fleetsing_render_line("Changed");
+    fleetsing_render_line("");
 
     for (uint8_t i = 0; i < fleetsing_display_remote_state.overlay_count; ++i) {
         fleetsing_render_pair(fleetsing_display_remote_state.overlay_items[i].title, fleetsing_display_remote_state.overlay_items[i].value);
@@ -1124,7 +1140,7 @@ static void fleetsing_fill_display_sync_state(fleetsing_display_sync_t *state) {
     state->host_leds           = fleetsing_host_led_state_bits();
     state->oneshot_mods        = get_oneshot_mods();
     state->oneshot_locked_mods = get_oneshot_locked_mods();
-    state->overlay_active      = fleetsing_oled_overlay_state.active;
+    state->overlay_active      = fleetsing_local_overlay_is_active();
     state->overlay_count       = fleetsing_oled_overlay_state.count;
 
     for (uint8_t i = 0; i < FLEETSING_OLED_OVERLAY_MAX_ITEMS; ++i) {

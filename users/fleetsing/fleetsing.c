@@ -13,10 +13,13 @@
  * the QMK hooks here. That makes it easier to see which hook owns which
  * behavior and avoids accidental hook duplication across files.
  */
-static layer_state_t           fleetsing_locked_layers_before;
-static bool                    fleetsing_layer_lock_pending;
-static bool                    fleetsing_numword_active;
-static uint16_t                fleetsing_numword_timer;
+static layer_state_t fleetsing_locked_layers_before;
+static bool          fleetsing_layer_lock_pending;
+static bool          fleetsing_numword_active;
+static uint16_t      fleetsing_numword_timer;
+static bool          fleetsing_l43_navigation_thumb_down;
+static bool          fleetsing_r43_navigation_thumb_down;
+static bool          fleetsing_navigation_thumb_symbol_active;
 typedef struct {
     bool     active;
     bool     fired;
@@ -24,6 +27,8 @@ typedef struct {
 } fleetsing_hold_action_t;
 
 static fleetsing_hold_action_t fleetsing_boot_hold;
+
+static layer_state_t fleetsing_thumb_combo_layer_state(layer_state_t state);
 
 #ifndef FLEETSING_BOOT_HOLD_TERM
 #    define FLEETSING_BOOT_HOLD_TERM 600
@@ -36,21 +41,9 @@ typedef struct {
 
 #define FLEETSING_LEFT_KNOB_PRESS_PIN B2
 
-#ifndef FLEETSING_LEFT_KNOB_DEBOUNCE
-#    define FLEETSING_LEFT_KNOB_DEBOUNCE 10
-#endif
-
 #ifdef SPLIT_TRANSACTION_IDS_USER
 static fleetsing_numword_sync_t fleetsing_numword_remote_state;
-
-typedef struct {
-    bool is_down;
-} fleetsing_left_knob_sync_t;
 #endif
-
-static bool     fleetsing_left_knob_raw_is_down;
-static bool     fleetsing_left_knob_is_down;
-static uint16_t fleetsing_left_knob_last_change;
 
 static void fleetsing_numword_reset_timer(void) {
 #if FLEETSING_NUMWORD_IDLE_TIMEOUT > 0
@@ -619,16 +612,6 @@ static void fleetsing_numword_sync_handler(uint8_t initiator2target_buffer_size,
     }
 }
 
-static void fleetsing_left_knob_sync_handler(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
-    (void)initiator2target_buffer_size;
-    (void)initiator2target_buffer;
-
-    if (target2initiator_buffer_size == sizeof(fleetsing_left_knob_sync_t)) {
-        fleetsing_left_knob_sync_t state = {.is_down = fleetsing_left_knob_is_down};
-        memcpy(target2initiator_buffer, &state, sizeof(state));
-    }
-}
-
 static void fleetsing_numword_sync_task(void) {
     if (!is_keyboard_master()) {
         return;
@@ -653,19 +636,6 @@ static void fleetsing_numword_sync_task(void) {
 }
 #endif
 
-static void fleetsing_left_knob_scan(void) {
-    bool is_down = is_keyboard_left() && !gpio_read_pin(FLEETSING_LEFT_KNOB_PRESS_PIN);
-
-    if (is_down != fleetsing_left_knob_raw_is_down) {
-        fleetsing_left_knob_raw_is_down = is_down;
-        fleetsing_left_knob_last_change = timer_read();
-    }
-
-    if (timer_elapsed(fleetsing_left_knob_last_change) >= FLEETSING_LEFT_KNOB_DEBOUNCE) {
-        fleetsing_left_knob_is_down = fleetsing_left_knob_raw_is_down;
-    }
-}
-
 bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     /*
      * Treat any physical key event as OLED activity.
@@ -684,6 +654,8 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    bool navigation_thumb_state_changed = false;
+
     if (record->event.pressed) {
         switch (keycode) {
             case QK_LAYER_LOCK:
@@ -693,6 +665,23 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             default:
                 break;
         }
+    }
+
+    switch (keycode) {
+        case LT(LAYER_NAVIGATION, KC_SPC):
+            fleetsing_l43_navigation_thumb_down = record->event.pressed;
+            navigation_thumb_state_changed      = true;
+            break;
+        case LT(LAYER_NAVIGATION, KC_BSPC):
+            fleetsing_r43_navigation_thumb_down = record->event.pressed;
+            navigation_thumb_state_changed      = true;
+            break;
+        default:
+            break;
+    }
+
+    if (navigation_thumb_state_changed) {
+        layer_state_set(layer_state);
     }
 
     /* Main per-key hook for userspace-owned custom keycodes. */
@@ -723,16 +712,35 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
+static layer_state_t fleetsing_thumb_combo_layer_state(layer_state_t state) {
+    state = update_tri_layer_state(state, LAYER_NUMBERS, LAYER_MEDIA, LAYER_MACRO);
+
+    bool navigation_thumbs_should_symbol = fleetsing_l43_navigation_thumb_down && fleetsing_r43_navigation_thumb_down && layer_state_cmp(state, LAYER_NAVIGATION);
+    if (navigation_thumbs_should_symbol) {
+        fleetsing_navigation_thumb_symbol_active = true;
+        state |= (layer_state_t)1 << LAYER_SYMBOLS;
+    } else if (fleetsing_navigation_thumb_symbol_active) {
+        fleetsing_navigation_thumb_symbol_active = false;
+        if (!is_layer_locked(LAYER_SYMBOLS)) {
+            state &= ~((layer_state_t)1 << LAYER_SYMBOLS);
+        }
+    }
+
+    return state;
+}
+
 layer_state_t layer_state_set_user(layer_state_t state) {
     /*
-     * Holding the symmetric outer layer thumbs together enters the media/system
-     * layer: Space/Numbers on the left plus Backspace/Navigation on the right
-     * promotes to Media regardless of which thumb is pressed first.
+     * Thumb hold pairs promote to sparse higher layers:
+     * - L43 + R43 both hold Navigation, so their Symbols promotion is tracked
+     *   by physical thumb state instead of QMK's two-layer helper.
+     * - L41 + R41 hold Numbers + Media and promote to Macro through the
+     *   standard tri-layer helper.
      *
-     * Keep this tri-layer rule in the generic userspace hook so it does not
+     * Keep these layer rules in the generic userspace hook so they do not
      * depend on whether pointing-device support is compiled in.
      */
-    state = update_tri_layer_state(state, LAYER_NUMBERS, LAYER_NAVIGATION, LAYER_MEDIA);
+    state = fleetsing_thumb_combo_layer_state(state);
     return fleetsing_pointing_layer_state_set(state);
 }
 
@@ -789,36 +797,6 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
-    /*
-     * The encoder press is currently wired to the former left-trackball MOSI
-     * line instead of the matrix, so treat it as a direct active-low GPIO
-     * button and forward the debounced state to the master half when needed.
-     */
-    static bool knob_press_was_down;
-    bool        knob_press_is_down = false;
-
-    fleetsing_left_knob_scan();
-
-    if (is_keyboard_master()) {
-        if (is_keyboard_left()) {
-            knob_press_is_down = fleetsing_left_knob_is_down;
-#ifdef SPLIT_TRANSACTION_IDS_USER
-        } else {
-            fleetsing_left_knob_sync_t remote_state = {0};
-            if (transaction_rpc_recv(RPC_ID_USER_LEFT_KNOB_STATE, sizeof(remote_state), &remote_state)) {
-                knob_press_is_down = remote_state.is_down;
-            }
-        }
-#else
-        }
-#endif
-
-        if (knob_press_is_down && !knob_press_was_down && get_highest_layer(layer_state | default_layer_state) == LAYER_BASE) {
-            tap_code(KC_ENT);
-        }
-        knob_press_was_down = knob_press_is_down;
-    }
-
     fleetsing_maintenance_task();
     fleetsing_numword_task();
 #ifdef SPLIT_TRANSACTION_IDS_USER
@@ -843,13 +821,10 @@ void keyboard_post_init_user(void) {
 
     if (is_keyboard_left()) {
         gpio_set_pin_input_high(FLEETSING_LEFT_KNOB_PRESS_PIN);
-        fleetsing_left_knob_raw_is_down = !gpio_read_pin(FLEETSING_LEFT_KNOB_PRESS_PIN);
-        fleetsing_left_knob_is_down     = fleetsing_left_knob_raw_is_down;
     }
 
 #ifdef SPLIT_TRANSACTION_IDS_USER
     transaction_register_rpc(RPC_ID_USER_NUMWORD_SYNC, fleetsing_numword_sync_handler);
-    transaction_register_rpc(RPC_ID_USER_LEFT_KNOB_STATE, fleetsing_left_knob_sync_handler);
 #endif
     fleetsing_display_post_init();
 

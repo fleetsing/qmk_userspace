@@ -19,6 +19,8 @@ enum charybdis_keymap_layers {
     LAYER_MEDIA,
     LAYER_POINTER,
     LAYER_MACRO,
+    LAYER_SCROLL_LEFT,
+    LAYER_SCROLL_RIGHT,
 };
 
 enum custom_keycodes {
@@ -73,7 +75,7 @@ typedef enum {
 #define FLEETSING_SYMBOL_COMBO_KEYCODE_CASES(X) \
     X(S(FI_4))                                  \
     X(A(FI_2))                                  \
-    X(FI_SCLN)                                  \
+    X(FI_COLN)                                  \
     X(FI_QUOT)                                  \
     X(FI_PLUS)                                  \
     X(FI_MINS)                                  \
@@ -106,11 +108,12 @@ static inline bool fleetsing_is_symbol_combo_keycode(uint16_t keycode) {
  * Sensor DPI is intentionally kept in the Charybdis firmware layer so runtime
  * DPI/sniping keycodes and EEPROM-backed state stay coherent.
  */
-fleetsing_os_mode_t     fleetsing_get_os_mode(void);
-void                    fleetsing_set_os_mode(fleetsing_os_mode_t mode);
-const char             *fleetsing_get_os_mode_name(void);
-uint16_t                fleetsing_os_keycode(uint16_t mac_keycode, uint16_t pc_keycode);
-void                    fleetsing_haptic_play_event(fleetsing_haptic_event_t event);
+fleetsing_os_mode_t fleetsing_get_os_mode(void);
+void                fleetsing_set_os_mode(fleetsing_os_mode_t mode);
+const char         *fleetsing_get_os_mode_name(void);
+uint16_t            fleetsing_os_keycode(uint16_t mac_keycode, uint16_t pc_keycode);
+void                fleetsing_haptic_play_event(fleetsing_haptic_event_t event);
+void                fleetsing_haptic_suppress(bool suppress);
 /*
  * Key and pointing modules call this to reset the OLED idle timer after real
  * user activity. The timer itself stays private to the display module.

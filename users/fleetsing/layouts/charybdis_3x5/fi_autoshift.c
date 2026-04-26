@@ -30,10 +30,13 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
     X(_L24)                                                \
     X(_L23)                                                \
     X(_L22)                                                \
+    X(_L13)                                                \
+    X(_L12)                                                \
     X(_L35)                                                \
-    X(_L32)                                                \
     X(_L33)                                                \
     X(_R35)                                                \
+    X(_R13)                                                \
+    X(_R12)                                                \
     X(_R33)                                                \
     X(_R31)                                                \
     X(_R32)                                                \
@@ -83,8 +86,8 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
             return shifted ? fleetsing_os_keycode(A(FI_4), FI_DLR) : fleetsing_os_keycode(S(FI_4), FI_EURO);
         case A(FI_2):
             return shifted ? FI_CIRC : fleetsing_os_keycode(A(FI_2), FI_AT);
-        case FI_SCLN:
-            return shifted ? FI_COLN : FI_SCLN;
+        case FI_COLN:
+            return shifted ? FI_SCLN : FI_COLN;
         case FI_QUOT:
             return shifted ? FI_DQUO : FI_QUOT;
         case FI_PLUS:
@@ -114,9 +117,9 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
         case S(A(FI_SECT)):
             return shifted ? A(FI_1) : S(A(FI_SECT));
         case _R31:
-            return shifted ? FI_QUES : FI_COMM;
-        case _R32:
             return shifted ? FI_EXLM : FI_DOT;
+        case _R32:
+            return shifted ? FI_QUES : FI_COMM;
         default:
             return (IS_RETRO(keycode)) ? keycode & 0xFF : keycode;
     }

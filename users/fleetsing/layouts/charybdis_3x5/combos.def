@@ -28,12 +28,12 @@ enum combos {
      * Keep the thumb combos in the same review order as layout_positions.h:
      * left-thumb chords first, then cross-thumb chords, then the right-thumb
      * chord. The current refined thumb layout keeps:
-     * - left Mouse 1 + left Esc/Macro for middle click
-     * - left Space/Numbers + left Esc/Macro for Repeat
-     * - left Space/Numbers + left Mouse 1 for right click
-     * - left Space/Numbers + right Backspace/Navigation for NumWord
-     * - left Esc/Macro + right Enter/Function for Caps Word
-     * - right Enter/Function + right Backspace/Navigation for Alt Repeat
+     * - left Mouse 1 + left Esc/Numbers for middle click
+     * - left Space/Navigation + left Esc/Numbers for Repeat
+     * - left Space/Navigation + left Mouse 1 for right click
+     * - left Space/Navigation + right Backspace/Navigation for NumWord
+     * - left Esc/Numbers + right Enter/Media for Caps Word
+     * - right Enter/Media + right Backspace/Navigation for Alt Repeat
      */
     L42_L41,
     L43_L41,
@@ -125,7 +125,7 @@ combo_t key_combos[] = {
 
     [L11_L21] = COMBO(L11_L21_COMBO, S(FI_4)),
     [L21_L31] = COMBO(L21_L31_COMBO, A(FI_2)),
-    [L12_L22] = COMBO(L12_L22_COMBO, FI_SCLN),
+    [L12_L22] = COMBO(L12_L22_COMBO, FI_COLN),
     [L22_L32] = COMBO(L22_L32_COMBO, FI_QUOT),
     [L13_L23] = COMBO(L13_L23_COMBO, FI_PLUS),
     [L23_L33] = COMBO(L23_L33_COMBO, FI_MINS),

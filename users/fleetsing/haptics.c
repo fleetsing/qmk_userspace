@@ -8,6 +8,12 @@ extern haptic_config_t haptic_config;
 #    include "drv2605l.h"
 #endif
 
+static bool fleetsing_haptic_suppressed;
+
+void fleetsing_haptic_suppress(bool suppress) {
+    fleetsing_haptic_suppressed = suppress;
+}
+
 /*
  * Haptic filtering should operate on the "effective" key when possible, so a
  * tapped mod-tap behaves like its tap key while a held mod-tap still behaves
@@ -27,6 +33,10 @@ static uint16_t fleetsing_haptic_normalize_keycode(uint16_t keycode, keyrecord_t
 }
 
 __attribute__((weak)) bool get_haptic_enabled_key(uint16_t keycode, keyrecord_t *record) {
+    if (fleetsing_haptic_suppressed || IS_ENCODEREVENT(record->event)) {
+        return false;
+    }
+
     keycode = fleetsing_haptic_normalize_keycode(keycode, record);
 
     /*

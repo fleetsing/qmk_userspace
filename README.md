@@ -35,7 +35,7 @@ This is where the board's personality lives:
 - NumWord behavior
 - OLED status UI
 - haptics
-- pointer-side selection and userspace pointer behavior
+- pointer, drag-scroll, encoder, and userspace pointing behavior
 - OS-mode switching and Finnish-layout symbol handling
 
 ## Behavior Notes
@@ -43,9 +43,18 @@ This is where the board's personality lives:
 - `NumWord` is the quick numeric burst mode entered from the `L43 + R43` thumb
   combo. It stays active through digit entry, common numeric punctuation, edit
   keys, and cursor movement keys such as arrows, Home/End, and Page Up/Down.
-- The media/system layer is a tri-layer reached by holding the Numbers thumb on
-  the left and the Navigation thumb on the right at the same time. This layer
-  is userspace-defined and does not depend on pointing-device support.
+- Thumb holds currently expose Navigation from `L43` and `R43`, Numbers from
+  `L41`, Function from `R42`, and Media from `R41`.
+- Holding both Navigation thumbs, `L43 + R43`, promotes to Symbols. Holding
+  Numbers and Media, `L41 + R41`, promotes to Macro.
+- Holding either bottom-row middle-finger key, `L33` or `R33`, turns the
+  trackball into drag-scroll through transparent scroll layers. Vertical
+  drag-scroll is configured so physical trackball up scrolls up and physical
+  down scrolls down.
+- The left encoder sends volume up/down on Base and Media, arrows on
+  Navigation, and wheel scroll on other layers. Its direct GPIO press pin is
+  initialized with an internal pull-up, but no key action is assigned while the
+  hardware path is prone to phantom clicks.
 - Bootloader entry is intentionally kept off the casual media layer. The only
   in-keymap boot access is the guarded `BOOT_SAFE` hold on the pointer layer.
 - Both `OS_MAC` and `OS_PC` still assume a Finnish host keyboard layout. The OS

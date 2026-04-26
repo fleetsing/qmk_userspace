@@ -42,7 +42,7 @@
 #define COMBO_MUST_TAP_PER_COMBO
 
 /* Reserve userspace split-RPC ids for synced OLED-facing runtime state. */
-#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC, RPC_ID_USER_DISPLAY_SYNC, RPC_ID_USER_LEFT_KNOB_STATE
+#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_NUMWORD_SYNC, RPC_ID_USER_DISPLAY_SYNC
 /*
  * The OLED display-sync payload includes several short overlay items, which is
  * larger than QMK's default 32-byte split RPC buffer.
@@ -105,6 +105,8 @@
  */
 #define CHARYBDIS_MINIMUM_DEFAULT_DPI PMW33XX_CPI
 #define CHARYBDIS_MINIMUM_SNIPING_DPI 600
+/* Keep drag-scroll vertical motion aligned with physical trackball motion. */
+#define CHARYBDIS_DRAGSCROLL_REVERSE_Y
 /* The remaining right-hand trackball uses the stock Charybdis single-sensor path. */
 
 /* Five quick taps on a one-shot key locks it; otherwise one-shot state times out after 3 seconds. */
@@ -228,13 +230,13 @@
  */
 #    define OLED_TIMEOUT 0
 /*
- * Sleep the OLEDs after 30 seconds without tracked key or pointing activity.
+ * Sleep the OLEDs after 60 seconds without tracked key or pointing activity.
  *
  * The final implementation uses a hard oled_off() on the master half. Fade-out
  * was tested and rejected because it did not behave reliably on this SH1107
  * path, while hard-off does.
  */
-#    define FLEETSING_OLED_IDLE_TIMEOUT 30000
+#    define FLEETSING_OLED_IDLE_TIMEOUT 60000
 #endif // OLED_ENABLE
 
 #ifdef HAPTIC_ENABLE

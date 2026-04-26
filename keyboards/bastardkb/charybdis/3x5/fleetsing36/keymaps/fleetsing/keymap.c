@@ -72,9 +72,8 @@
  *
  * The actual alpha bindings mostly live in layout_positions.h so changes to a
  * physical position can be made once and then reused across combos and layers.
- * That includes the refined thumb cluster, where Esc moved to the left macro
- * thumb, Enter moved to the right function thumb, and Backspace now lives on
- * the right navigation thumb.
+ * That includes the refined thumb cluster, where Space and Backspace both hold
+ * Navigation, Esc holds Numbers, Enter holds Media, and Tab holds Function.
  */
 #define LAYOUT_LAYER_BASE                                                                                                               \
     _L15,       _L14,       _L13,       _L12,       _L11,               _R11,       _R12,       _R13,       _R14,       _R15,           \
@@ -129,9 +128,8 @@
 /*
  * Function-key layer.
  *
- * The refined right thumb makes Enter the tap action for the same key that
- * holds this layer, so the most common confirmation key stays under the
- * stronger thumb while function access remains deliberate.
+ * The refined right thumb makes Tab the tap action for the same key that holds
+ * this layer, keeping Function deliberate while Tab stays available from base.
  */
 #define LAYOUT_LAYER_FUNCTION                                                                                                           \
     KC_F21,     KC_F22,     KC_F23,     KC_F24,     KC_PSCR,            KC_PSCR,    KC_F7,      KC_F8,      KC_F9,      KC_F12,         \
@@ -194,14 +192,20 @@
 /*
  * Dynamic-macro and desktop-shortcut layer.
  *
- * Esc moved off this hold-tap and onto the opposite inner thumb, so this layer
- * now uses the left inner thumb purely as "Esc on tap, Macro on hold".
+ * This layer is reached by holding the left Numbers thumb and right Media
+ * thumb together, which keeps dynamic macro controls away from casual taps.
  */
 #define LAYOUT_LAYER_MACRO                                                                                                              \
     XXXXXXX,    XXXXXXX,    DM_REC2,    DM_REC1,    XXXXXXX,            XXXXXXX,    XXXXXXX,    KC_UP,      XXXXXXX,    XXXXXXX,        \
     XXXXXXX,    XXXXXXX,    DM_PLY2,    DM_PLY1,    DM_RSTP,            XXXXXXX,    KC_LEFT,    KC_DOWN,    KC_RGHT,    XXXXXXX,        \
     XXXXXXX,    G(FI_Z),    G(FI_X),    G(FI_C),    G(FI_V),            XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,        \
                             XXXXXXX,    XXXXXXX,    QK_LLCK,            QK_LLCK,    XXXXXXX,    XXXXXXX
+
+#define LAYOUT_LAYER_SCROLL                                                                                                             \
+    _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
+    _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
+    _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
+                            _______,    _______,    _______,            _______,    _______,    _______
 
 /* Wrap the board's LAYOUT macro so layer macros stay visually grouped. */
 #define LAYOUT_wrapper(...) LAYOUT(__VA_ARGS__)
@@ -216,20 +220,23 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [LAYER_MEDIA]      = LAYOUT_wrapper(LAYOUT_LAYER_MEDIA),
     [LAYER_POINTER]    = LAYOUT_wrapper(LAYOUT_LAYER_POINTER),
     [LAYER_MACRO]      = LAYOUT_wrapper(LAYOUT_LAYER_MACRO),
+    [LAYER_SCROLL_LEFT]  = LAYOUT_wrapper(LAYOUT_LAYER_SCROLL),
+    [LAYER_SCROLL_RIGHT] = LAYOUT_wrapper(LAYOUT_LAYER_SCROLL),
 };
 
 #if defined(ENCODER_MAP_ENABLE)
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
-    /* Keep the one confirmed encoder on a simple arrow-key test mapping for now. */
-    [LAYER_BASE]       = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_NUMWORD]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_NUMBERS]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_BASE]       = {ENCODER_CCW_CW(KC_VOLU, KC_VOLD)},
+    [LAYER_NUMWORD]    = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_NUMBERS]    = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
     [LAYER_NAVIGATION] = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_FUNCTION]   = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_SYMBOLS]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_MEDIA]      = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_POINTER]    = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
-    [LAYER_MACRO]      = {ENCODER_CCW_CW(KC_DOWN, KC_UP)},
+    [LAYER_FUNCTION]   = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_SYMBOLS]    = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_MEDIA]      = {ENCODER_CCW_CW(KC_VOLU, KC_VOLD)},
+    [LAYER_POINTER]    = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_MACRO]      = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_SCROLL_LEFT]  = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_SCROLL_RIGHT] = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
 };
 #endif
 
@@ -257,12 +264,14 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
         case _R25:
             return 175;
 
+        case _L13:
+        case _L12:
         case _L35:
         case _L33:
-        case _L32:
+        case _R13:
+        case _R12:
         case _R35:
         case _R33:
-        case _R32:
             return 190;
 
         case _R41:

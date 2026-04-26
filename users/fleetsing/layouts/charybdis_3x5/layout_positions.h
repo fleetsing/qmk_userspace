@@ -21,8 +21,8 @@
  */
 #define _L15 FI_W
 #define _L14 FI_G
-#define _L13 FI_D
-#define _L12 FI_F
+#define _L13 MEH_T(FI_D)
+#define _L12 HYPR_T(FI_F)
 #define _L11 FI_B
 
 /*
@@ -39,28 +39,28 @@
  */
 #define _L35 LT(LAYER_POINTER, FI_X)
 #define _L34 FI_C
-#define _L33 MEH_T(FI_M)
-#define _L32 HYPR_T(FI_P)
+#define _L33 LT(LAYER_SCROLL_LEFT, FI_M)
+#define _L32 FI_P
 #define _L31 FI_V
 
 /*
  * Left-hand thumb cluster.
  *
  * Keep the roles listed in the same left-to-right order as the matrix:
- * - L43 = Space tap, Numbers hold
+ * - L43 = Space tap, Navigation hold
  * - L42 = Mouse 1
- * - L41 = Esc tap, Macro hold
+ * - L41 = Esc tap, Numbers hold
  */
-#define _L43 LT(LAYER_NUMBERS, KC_SPC)
+#define _L43 LT(LAYER_NAVIGATION, KC_SPC)
 #define _L42 MS_BTN1
-#define _L41 LT(LAYER_MACRO, KC_ESC)
+#define _L41 LT(LAYER_NUMBERS, KC_ESC)
 
 /*
  * Right-hand row 1.
  */
-#define _R11 FI_Q
-#define _R12 FI_H
-#define _R13 FI_U
+#define _R11 FI_Z
+#define _R12 HYPR_T(FI_H)
+#define _R13 MEH_T(FI_U)
 #define _R14 FI_O
 #define _R15 FI_Y
 
@@ -76,23 +76,23 @@
 /*
  * Right-hand row 3.
  */
-#define _R31 FI_COMM
-#define _R32 HYPR_T(FI_DOT)
-#define _R33 MEH_T(FI_ADIA)
+#define _R31 FI_DOT
+#define _R32 FI_COMM
+#define _R33 LT(LAYER_SCROLL_RIGHT, FI_ADIA)
 #define _R34 FI_ODIA
-#define _R35 LT(LAYER_POINTER, FI_Z)
+#define _R35 LT(LAYER_POINTER, FI_Q)
 
 /*
  * Right-hand thumb cluster.
  *
  * The refined thumb layout keeps the same "editing tap on the inner thumb,
  * layer hold on the same key" pattern used on the left side:
- * - R41 = Enter tap, Function hold
- * - R42 = Tab tap, Symbols hold
+ * - R41 = Enter tap, Media hold
+ * - R42 = Tab tap, Function hold
  * - R43 = Backspace tap, Navigation hold
  */
-#define _R41 LT(LAYER_FUNCTION, KC_ENT)
-#define _R42 LT(LAYER_SYMBOLS, KC_TAB)
+#define _R41 LT(LAYER_MEDIA, KC_ENT)
+#define _R42 LT(LAYER_FUNCTION, KC_TAB)
 #define _R43 LT(LAYER_NAVIGATION, KC_BSPC)
 
 /*
@@ -100,7 +100,8 @@
  *
  * These combos are named by physical positions in combos.def so they stay
  * stable even if the tap/hold roles on those thumbs are adjusted:
- * - L43 + R43 taps into NumWord; holding both layer-taps promotes to Media
- *   through the Numbers + Navigation tri-layer
+ * - L43 + R43 taps into NumWord; holding both Navigation thumbs promotes to
+ *   Symbols
  * - L41 + R41 taps together for Caps Word on the Esc + Enter pair
+ * - L41 + R41 holds promote to Macro through the Numbers + Media tri-layer
  */
