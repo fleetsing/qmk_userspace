@@ -26,8 +26,6 @@
 #    define NO_ACTION_ONESHOT
 #endif // __arm__
 
-#define RGB_MATRIX_DISABLE_SHARED_KEYCODES
-
 /* Layer lock auto-clears after 60 seconds to avoid leaving a layer latched indefinitely. */
 #define LAYER_LOCK_IDLE_TIMEOUT 60000 // Turn off after 60 seconds.
 /* Global fallback tap-vs-hold threshold for dual-role keys. */
