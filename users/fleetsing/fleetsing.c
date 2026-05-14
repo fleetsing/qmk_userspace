@@ -29,6 +29,7 @@ typedef struct {
 static fleetsing_hold_action_t fleetsing_boot_hold;
 
 static layer_state_t fleetsing_thumb_combo_layer_state(layer_state_t state);
+static layer_state_t fleetsing_auto_mouse_layer_state(layer_state_t state);
 
 #ifndef FLEETSING_BOOT_HOLD_TERM
 #    define FLEETSING_BOOT_HOLD_TERM 600
@@ -729,6 +730,22 @@ static layer_state_t fleetsing_thumb_combo_layer_state(layer_state_t state) {
     return state;
 }
 
+static layer_state_t fleetsing_auto_mouse_layer_state(layer_state_t state) {
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    switch (get_highest_layer(remove_auto_mouse_layer(state, true))) {
+        case LAYER_BASE:
+            set_auto_mouse_enable(true);
+            break;
+        default:
+            state = remove_auto_mouse_layer(state, false);
+            set_auto_mouse_enable(false);
+            break;
+    }
+#endif
+
+    return state;
+}
+
 layer_state_t layer_state_set_user(layer_state_t state) {
     /*
      * Thumb hold pairs promote to sparse higher layers:
@@ -741,8 +758,22 @@ layer_state_t layer_state_set_user(layer_state_t state) {
      * depend on whether pointing-device support is compiled in.
      */
     state = fleetsing_thumb_combo_layer_state(state);
+    state = fleetsing_auto_mouse_layer_state(state);
     return fleetsing_pointing_layer_state_set(state);
 }
+
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+bool is_mouse_record_user(uint16_t keycode, keyrecord_t *record) {
+    (void)record;
+
+    switch (keycode) {
+        case DRGSCRL:
+            return true;
+        default:
+            return false;
+    }
+}
+#endif
 
 /*
  * Extend Caps Word for Finnish letters and identifier-friendly separators.
@@ -827,6 +858,11 @@ void keyboard_post_init_user(void) {
     transaction_register_rpc(RPC_ID_USER_NUMWORD_SYNC, fleetsing_numword_sync_handler);
 #endif
     fleetsing_display_post_init();
+
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    set_auto_mouse_layer(LAYER_AUTOMOUSE);
+    set_auto_mouse_enable(true);
+#endif
 
 #ifdef HAPTIC_ENABLE
     if (haptic_get_mode() != DRV2605L_DEFAULT_MODE) {

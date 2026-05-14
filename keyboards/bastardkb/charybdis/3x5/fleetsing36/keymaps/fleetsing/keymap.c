@@ -207,6 +207,21 @@
     _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
                             _______,    _______,    _______,            _______,    _______,    _______
 
+/*
+ * Auto Mouse layer.
+ *
+ * Trackball movement can temporarily expose one-handed right-side pointer
+ * controls without entering the deliberate pointer/sniping layer:
+ * - dot = right click
+ * - comma = left click
+ * - ä = drag-scroll hold
+ */
+#define LAYOUT_LAYER_AUTOMOUSE                                                                                                          \
+    _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
+    _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
+    _______,    _______,    _______,    _______,    _______,            MS_BTN2,    MS_BTN1,    DRGSCRL,    _______,    _______,        \
+                            _______,    _______,    _______,            _______,    _______,    _______
+
 /* Wrap the board's LAYOUT macro so layer macros stay visually grouped. */
 #define LAYOUT_wrapper(...) LAYOUT(__VA_ARGS__)
 
@@ -222,6 +237,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [LAYER_MACRO]      = LAYOUT_wrapper(LAYOUT_LAYER_MACRO),
     [LAYER_SCROLL_LEFT]  = LAYOUT_wrapper(LAYOUT_LAYER_SCROLL),
     [LAYER_SCROLL_RIGHT] = LAYOUT_wrapper(LAYOUT_LAYER_SCROLL),
+    [LAYER_AUTOMOUSE]    = LAYOUT_wrapper(LAYOUT_LAYER_AUTOMOUSE),
 };
 
 #if defined(ENCODER_MAP_ENABLE)
@@ -237,6 +253,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [LAYER_MACRO]      = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
     [LAYER_SCROLL_LEFT]  = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
     [LAYER_SCROLL_RIGHT] = {ENCODER_CCW_CW(MS_WHLD, MS_WHLU)},
+    [LAYER_AUTOMOUSE]    = {ENCODER_CCW_CW(KC_VOLU, KC_VOLD)},
 };
 #endif
 
@@ -264,14 +281,12 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
         case _R25:
             return 175;
 
-        case _L13:
-        case _L12:
         case _L35:
         case _L33:
-        case _R13:
-        case _R12:
-        case _R35:
+        case _L32:
         case _R33:
+        case _R32:
+        case _R35:
             return 190;
 
         case _R41:
@@ -311,6 +326,7 @@ bool get_permissive_hold(uint16_t keycode, keyrecord_t *record) {
         case _R41:
         case _R42:
         case _R43:
+        case _R35:
             return false;
         default:
             return true;

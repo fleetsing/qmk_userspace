@@ -21,8 +21,8 @@
  */
 #define _L15 FI_W
 #define _L14 FI_G
-#define _L13 MEH_T(FI_D)
-#define _L12 HYPR_T(FI_F)
+#define _L13 FI_D
+#define _L12 FI_F
 #define _L11 FI_B
 
 /*
@@ -39,8 +39,8 @@
  */
 #define _L35 LT(LAYER_POINTER, FI_X)
 #define _L34 FI_C
-#define _L33 LT(LAYER_SCROLL_LEFT, FI_M)
-#define _L32 FI_P
+#define _L33 MEH_T(FI_M)
+#define _L32 HYPR_T(FI_P)
 #define _L31 FI_V
 
 /*
@@ -59,8 +59,8 @@
  * Right-hand row 1.
  */
 #define _R11 FI_Z
-#define _R12 HYPR_T(FI_H)
-#define _R13 MEH_T(FI_U)
+#define _R12 FI_H
+#define _R13 FI_U
 #define _R14 FI_O
 #define _R15 FI_Y
 
@@ -77,8 +77,8 @@
  * Right-hand row 3.
  */
 #define _R31 FI_DOT
-#define _R32 FI_COMM
-#define _R33 LT(LAYER_SCROLL_RIGHT, FI_ADIA)
+#define _R32 HYPR_T(FI_COMM)
+#define _R33 MEH_T(FI_ADIA)
 #define _R34 FI_ODIA
 #define _R35 LT(LAYER_POINTER, FI_Q)
 

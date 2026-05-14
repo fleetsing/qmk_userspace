@@ -102,6 +102,18 @@
 #define CHARYBDIS_DRAGSCROLL_REVERSE_Y
 /* The remaining right-hand trackball uses the stock Charybdis single-sensor path. */
 
+/*
+ * Auto Mouse exposes sparse right-hand mouse buttons after deliberate trackball
+ * movement. Keep activation conservative so normal typing brushes do not arm
+ * click keys too eagerly, but leave the layer available for a few seconds
+ * after movement stops so click/drag targets remain reachable.
+ */
+#define POINTING_DEVICE_AUTO_MOUSE_ENABLE
+#define AUTO_MOUSE_THRESHOLD 32
+#define AUTO_MOUSE_DELAY 300
+#define AUTO_MOUSE_TIME 5000
+#define AUTO_MOUSE_DEBOUNCE 35
+
 /* Five quick taps on a one-shot key locks it; otherwise one-shot state times out after 3 seconds. */
 #define ONESHOT_TAP_TOGGLE 5
 #define ONESHOT_TIMEOUT 3000

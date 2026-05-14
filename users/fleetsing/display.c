@@ -15,26 +15,11 @@
 #    define FLEETSING_OLED_IDLE_TIMEOUT 30000
 #endif
 
-#ifndef FLEETSING_OLED_OVERLAY_TIMEOUT
-#    define FLEETSING_OLED_OVERLAY_TIMEOUT 1500
-#endif
-
-#ifndef FLEETSING_OLED_OVERLAY_GROUP_WINDOW
-#    define FLEETSING_OLED_OVERLAY_GROUP_WINDOW 250
-#endif
-
 #define FLEETSING_OLED_VALUE_SIZE 16
 #define FLEETSING_OLED_SNAPSHOT_SIZE 128
-#define FLEETSING_OLED_OVERLAY_MAX_ITEMS 3
 #define FLEETSING_OLED_MASTER_TOP_PAD 2
-#define FLEETSING_OLED_OFFHAND_TOP_PAD 2
 #define FLEETSING_OLED_TEMP_TOP_PAD 2
 #define FLEETSING_OLED_LEFT_INSET 1
-
-typedef struct {
-    char title[10];
-    char value[FLEETSING_OLED_VALUE_SIZE];
-} fleetsing_oled_overlay_item_t;
 
 #ifdef DYNAMIC_MACRO_ENABLE
 /*
@@ -61,18 +46,16 @@ static void fleetsing_refresh_macro_status(void);
 
 #ifdef SPLIT_TRANSACTION_IDS_USER
 typedef struct {
-    uint8_t                       layer;
-    uint8_t                       locked_layers_mask;
-    uint8_t                       pointer_flags;
-    uint16_t                      dpi;
-    uint8_t                       os_mode;
-    uint8_t                       macro_status;
-    uint8_t                       host_leds;
-    uint8_t                       oneshot_mods;
-    uint8_t                       oneshot_locked_mods;
-    bool                          overlay_active;
-    uint8_t                       overlay_count;
-    fleetsing_oled_overlay_item_t overlay_items[FLEETSING_OLED_OVERLAY_MAX_ITEMS];
+    uint8_t  layer;
+    uint8_t  locked_layers_mask;
+    uint8_t  pointer_flags;
+    uint16_t dpi;
+    uint16_t auto_mouse_remaining;
+    uint8_t  os_mode;
+    uint8_t  macro_status;
+    uint8_t  host_leds;
+    uint8_t  oneshot_mods;
+    uint8_t  oneshot_locked_mods;
 } fleetsing_display_sync_t;
 
 static fleetsing_display_sync_t fleetsing_display_remote_state = {0};
@@ -82,7 +65,7 @@ _Static_assert(sizeof(fleetsing_display_sync_t) <= RPC_M2S_BUFFER_SIZE, "Display
 
 /*
  * OLED glossary:
- * - Layer: highest currently active layer on the physical left-side dashboard.
+ * - Layer: highest currently active layer, used by the right-side layer page.
  * - Lock: layers latched with QMK Layer Lock, not merely held.
  * - Ptr: two mode flags, shown as "<SD>".
  *        S = sniping, D = drag-scroll.
@@ -94,12 +77,11 @@ _Static_assert(sizeof(fleetsing_display_sync_t) <= RPC_M2S_BUFFER_SIZE, "Display
  *        Lowercase means armed for the next key, uppercase means locked.
  * - Host: host keyboard LED state in Num, Caps, Scroll order.
  * - Alert: a right-side warning-first summary for unusual active conditions.
- * - Overlay: a short-lived bundled confirmation page that can show several
- *            changed states together, such as layer + DPI on pointer-layer entry.
  * - Macro Page: a temporary right-side detail page during macro recording,
  *               playback, or recent save acknowledgement.
  * - NumWord Page: a temporary right-side detail page that shows the synced
  *                 NumWord timeout as both a countdown and a compact progress bar.
+ * - Layer Page: a persistent right-side reference for the highest active layer.
  */
 
 /*
@@ -131,6 +113,8 @@ static const char *fleetsing_layer_name(uint8_t layer) {
         case LAYER_SCROLL_LEFT:
         case LAYER_SCROLL_RIGHT:
             return "SCR";
+        case LAYER_AUTOMOUSE:
+            return "AM";
         default:
             return "UNDEF";
     }
@@ -310,25 +294,8 @@ static void fleetsing_format_locked_layers_state(uint8_t mask, char *buffer, siz
 }
 
 /*
- * Pointer flags summarize the two firmware-owned pointer modes:
- * - S = sniping mode enabled
- * - D = drag-scroll enabled
- *
- * Either flag becomes "-" when that mode is inactive.
+ * Pointer flags summarize the two firmware-owned pointer modes for split sync.
  */
-static void fleetsing_format_pointer_flags(char *buffer, size_t size) {
-#ifdef POINTING_DEVICE_ENABLE
-    snprintf(buffer, size, "%c%c", charybdis_get_pointer_sniping_enabled() ? 'S' : '-', charybdis_get_pointer_dragscroll_enabled() ? 'D' : '-');
-#else
-    snprintf(buffer, size, "--");
-#endif
-}
-
-/* Render the compact two-flag pointer status used on the dashboard. */
-static void fleetsing_format_pointer_mode(char *buffer, size_t size) {
-    fleetsing_format_pointer_flags(buffer, size);
-}
-
 static uint8_t fleetsing_pointer_flags_state(void) {
     uint8_t flags = 0;
 #ifdef POINTING_DEVICE_ENABLE
@@ -340,10 +307,6 @@ static uint8_t fleetsing_pointer_flags_state(void) {
     }
 #endif
     return flags;
-}
-
-static void fleetsing_format_pointer_mode_state(uint8_t flags, char *buffer, size_t size) {
-    snprintf(buffer, size, "%c%c", flags & ((uint8_t)1 << 0) ? 'S' : '-', flags & ((uint8_t)1 << 1) ? 'D' : '-');
 }
 
 /*
@@ -447,6 +410,42 @@ static void fleetsing_format_numword_progress(char *buffer, size_t size) {
 #endif
 }
 
+static void fleetsing_format_auto_mouse_remaining(uint16_t remaining, char *buffer, size_t size) {
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    uint8_t tenths = remaining / 100;
+    snprintf(buffer, size, "%u.%us", tenths / 10, tenths % 10);
+#else
+    snprintf(buffer, size, "-");
+#endif
+}
+
+static void fleetsing_format_auto_mouse_progress(uint16_t remaining, char *buffer, size_t size) {
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    enum { bar_width = 8 };
+    uint8_t filled = (uint8_t)(((uint32_t)remaining * bar_width + (AUTO_MOUSE_TIME - 1)) / AUTO_MOUSE_TIME);
+
+    if (filled > bar_width) {
+        filled = bar_width;
+    }
+
+    if (size < (size_t)(bar_width + 3)) {
+        if (size > 0) {
+            buffer[0] = '\0';
+        }
+        return;
+    }
+
+    buffer[0] = '[';
+    for (uint8_t i = 0; i < bar_width; ++i) {
+        buffer[i + 1] = i < filled ? '#' : '-';
+    }
+    buffer[bar_width + 1] = ']';
+    buffer[bar_width + 2] = '\0';
+#else
+    snprintf(buffer, size, "[----]");
+#endif
+}
+
 /*
  * Split the compact macro status into a clearer action line for the dedicated
  * right-side page.
@@ -545,215 +544,6 @@ static void fleetsing_format_macro_page_slot_state(uint8_t status, char *buffer,
 #else
     snprintf(buffer, size, "-");
 #endif
-}
-
-/*
- * Treat Layer Lock, locked one-shot mods, and Caps Lock as notable enough to
- * deserve a warning-first right-side panel.
- *
- * The alert line is intentionally terse. More detail remains visible in the
- * surrounding fields so the right-side panel stays readable.
- */
-static bool fleetsing_format_alert(char *buffer, size_t size) {
-    char value[FLEETSING_OLED_VALUE_SIZE];
-
-    fleetsing_format_locked_layers(value, sizeof(value));
-    if (strcmp(value, "-") != 0) {
-        snprintf(buffer, size, "LOCK %s", value);
-        return true;
-    }
-
-    if (get_oneshot_locked_mods() != 0) {
-        fleetsing_format_oneshot_mods(value, sizeof(value));
-        snprintf(buffer, size, "OSM %s", value);
-        return true;
-    }
-
-    if (host_keyboard_led_state().caps_lock) {
-        snprintf(buffer, size, "CAPS ON");
-        return true;
-    }
-
-    snprintf(buffer, size, "-");
-    return false;
-}
-
-static bool fleetsing_format_alert_state(uint8_t locked_layers_mask, uint8_t oneshot_mods, uint8_t oneshot_locked_mods, uint8_t host_leds, char *buffer, size_t size) {
-    char value[FLEETSING_OLED_VALUE_SIZE];
-
-    fleetsing_format_locked_layers_state(locked_layers_mask, value, sizeof(value));
-    if (strcmp(value, "-") != 0) {
-        snprintf(buffer, size, "LOCK %s", value);
-        return true;
-    }
-
-    if (oneshot_locked_mods != 0) {
-        fleetsing_format_oneshot_mods_state(oneshot_mods, oneshot_locked_mods, value, sizeof(value));
-        snprintf(buffer, size, "OSM %s", value);
-        return true;
-    }
-
-    if (host_leds & 0x02) {
-        snprintf(buffer, size, "CAPS ON");
-        return true;
-    }
-
-    snprintf(buffer, size, "-");
-    return false;
-}
-
-/*
- * Short-lived change overlays acknowledge mode transitions without making the
- * steady-state dashboards permanently denser.
- */
-typedef struct {
-    bool                          initialized;
-    bool                          active;
-    uint8_t                       count;
-    fleetsing_oled_overlay_item_t items[FLEETSING_OLED_OVERLAY_MAX_ITEMS];
-    uint8_t                       last_layer;
-    char                          last_lock[FLEETSING_OLED_VALUE_SIZE];
-    char                          last_os[5];
-    char                          last_osm[5];
-    uint16_t                      last_dpi;
-    uint32_t                      timer;
-} fleetsing_oled_overlay_state_t;
-
-static fleetsing_oled_overlay_state_t fleetsing_oled_overlay_state = {0};
-
-static void fleetsing_reset_oled_overlay_items(void) {
-    fleetsing_oled_overlay_state.count = 0;
-}
-
-static void fleetsing_append_oled_overlay_item(const char *title, const char *value) {
-    for (uint8_t i = 0; i < fleetsing_oled_overlay_state.count; ++i) {
-        if (strcmp(fleetsing_oled_overlay_state.items[i].title, title) == 0) {
-            snprintf(fleetsing_oled_overlay_state.items[i].value, sizeof(fleetsing_oled_overlay_state.items[i].value), "%s", value);
-            return;
-        }
-    }
-
-    if (fleetsing_oled_overlay_state.count >= FLEETSING_OLED_OVERLAY_MAX_ITEMS) {
-        return;
-    }
-
-    snprintf(fleetsing_oled_overlay_state.items[fleetsing_oled_overlay_state.count].title, sizeof(fleetsing_oled_overlay_state.items[fleetsing_oled_overlay_state.count].title), "%s", title);
-    snprintf(fleetsing_oled_overlay_state.items[fleetsing_oled_overlay_state.count].value, sizeof(fleetsing_oled_overlay_state.items[fleetsing_oled_overlay_state.count].value), "%s", value);
-    fleetsing_oled_overlay_state.count++;
-}
-
-static bool fleetsing_local_overlay_is_active(void) {
-    if (!fleetsing_oled_overlay_state.active) {
-        return false;
-    }
-
-    if (timer_elapsed32(fleetsing_oled_overlay_state.timer) >= FLEETSING_OLED_OVERLAY_TIMEOUT) {
-        fleetsing_oled_overlay_state.active = false;
-        return false;
-    }
-
-    return true;
-}
-
-static bool fleetsing_overlay_is_active(void) {
-#ifdef SPLIT_TRANSACTION_IDS_USER
-    if (!is_keyboard_master() && !is_keyboard_left()) {
-        return fleetsing_display_remote_state.overlay_active;
-    }
-#endif
-    return fleetsing_local_overlay_is_active();
-}
-
-/*
- * Treat a short burst of related updates as one logical event.
- *
- * This keeps OLED feedback calmer when one action triggers several follow-on
- * state updates in quick succession.
- */
-static bool fleetsing_should_reset_overlay_bundle(void) {
-    return !fleetsing_oled_overlay_state.active || timer_elapsed32(fleetsing_oled_overlay_state.timer) >= FLEETSING_OLED_OVERLAY_GROUP_WINDOW;
-}
-
-/*
- * Detect changes in the most surprise-prone runtime state and convert them
- * into a short confirmation overlay.
- *
- * This runs from the display task instead of key hooks so state changes driven
- * by split sync or firmware-owned pointer settings still produce the same UI.
- */
-static void fleetsing_update_oled_overlay(void) {
-    char     lock[FLEETSING_OLED_VALUE_SIZE];
-    char     os[5];
-    char     osm[5];
-    char     value[FLEETSING_OLED_VALUE_SIZE];
-    uint8_t  layer       = get_highest_layer(layer_state);
-    uint16_t dpi         = fleetsing_get_active_pointer_dpi();
-    bool     has_changes = false;
-
-    fleetsing_format_locked_layers(lock, sizeof(lock));
-    fleetsing_format_os_mode(os, sizeof(os));
-    fleetsing_format_oneshot_mods(osm, sizeof(osm));
-
-    if (!fleetsing_oled_overlay_state.initialized) {
-        fleetsing_oled_overlay_state.last_layer = layer;
-        snprintf(fleetsing_oled_overlay_state.last_lock, sizeof(fleetsing_oled_overlay_state.last_lock), "%s", lock);
-        snprintf(fleetsing_oled_overlay_state.last_os, sizeof(fleetsing_oled_overlay_state.last_os), "%s", os);
-        snprintf(fleetsing_oled_overlay_state.last_osm, sizeof(fleetsing_oled_overlay_state.last_osm), "%s", osm);
-        fleetsing_oled_overlay_state.last_dpi    = dpi;
-        fleetsing_oled_overlay_state.initialized = true;
-        fleetsing_oled_overlay_state.active      = false;
-        return;
-    }
-
-    if (fleetsing_oled_overlay_state.last_layer != layer) {
-        has_changes = true;
-    }
-    if (strcmp(fleetsing_oled_overlay_state.last_lock, lock) != 0) {
-        has_changes = true;
-    }
-    if (strcmp(fleetsing_oled_overlay_state.last_os, os) != 0) {
-        has_changes = true;
-    }
-    if (strcmp(fleetsing_oled_overlay_state.last_osm, osm) != 0) {
-        has_changes = true;
-    }
-    if (fleetsing_oled_overlay_state.last_dpi != dpi) {
-        has_changes = true;
-    }
-
-    if (has_changes) {
-        if (fleetsing_should_reset_overlay_bundle()) {
-            fleetsing_reset_oled_overlay_items();
-        }
-
-        if (fleetsing_oled_overlay_state.last_layer != layer) {
-            fleetsing_append_oled_overlay_item("Layer", fleetsing_layer_name(layer));
-        }
-        if (strcmp(fleetsing_oled_overlay_state.last_lock, lock) != 0) {
-            snprintf(value, sizeof(value), "%s", strcmp(lock, "-") == 0 ? "CLEAR" : lock);
-            fleetsing_append_oled_overlay_item("Lock", value);
-        }
-        if (strcmp(fleetsing_oled_overlay_state.last_os, os) != 0) {
-            fleetsing_append_oled_overlay_item("OS", os);
-        }
-        if (strcmp(fleetsing_oled_overlay_state.last_osm, osm) != 0) {
-            snprintf(value, sizeof(value), "%s", strcmp(osm, "----") == 0 ? "CLEAR" : osm);
-            fleetsing_append_oled_overlay_item("OSM", value);
-        }
-        if (fleetsing_oled_overlay_state.last_dpi != dpi) {
-            snprintf(value, sizeof(value), "%u", dpi);
-            fleetsing_append_oled_overlay_item("DPI", value);
-        }
-
-        fleetsing_oled_overlay_state.timer  = timer_read32();
-        fleetsing_oled_overlay_state.active = fleetsing_oled_overlay_state.count > 0;
-    }
-
-    fleetsing_oled_overlay_state.last_layer = layer;
-    snprintf(fleetsing_oled_overlay_state.last_lock, sizeof(fleetsing_oled_overlay_state.last_lock), "%s", lock);
-    snprintf(fleetsing_oled_overlay_state.last_os, sizeof(fleetsing_oled_overlay_state.last_os), "%s", os);
-    snprintf(fleetsing_oled_overlay_state.last_osm, sizeof(fleetsing_oled_overlay_state.last_osm), "%s", osm);
-    fleetsing_oled_overlay_state.last_dpi = dpi;
 }
 
 #ifdef DYNAMIC_MACRO_ENABLE
@@ -882,24 +672,25 @@ static void fleetsing_format_macro_status_state(uint8_t status, char *buffer, si
 #endif
 
 /*
- * The physical left half is the active-status dashboard.
+ * The physical left half is the layer-independent system dashboard.
  *
- * These fields are the ones most likely to matter while actively using the
- * board: current layer, latched layers, pointer mode, and effective DPI.
+ * Keep this side stable while the right side changes with the active layer.
  */
 static void fleetsing_render_master_panel(void) {
     char value[FLEETSING_OLED_VALUE_SIZE];
 
     fleetsing_render_top_padding(FLEETSING_OLED_MASTER_TOP_PAD);
-    fleetsing_render_pair("Layer", fleetsing_layer_name(get_highest_layer(layer_state)));
+    fleetsing_format_os_mode(value, sizeof(value));
+    fleetsing_render_pair("OS", value);
+
     fleetsing_format_locked_layers(value, sizeof(value));
     fleetsing_render_pair("Lock", value);
 
-    fleetsing_format_pointer_mode(value, sizeof(value));
-    fleetsing_render_pair("Ptr", value);
+    fleetsing_format_oneshot_mods(value, sizeof(value));
+    fleetsing_render_pair("OSM", value);
 
-    snprintf(value, sizeof(value), "%u", fleetsing_get_active_pointer_dpi());
-    fleetsing_render_pair("DPI", value);
+    fleetsing_format_host_leds(value, sizeof(value));
+    fleetsing_render_pair("Host", value);
 }
 
 static void fleetsing_render_left_panel_remote(void) {
@@ -907,13 +698,17 @@ static void fleetsing_render_left_panel_remote(void) {
     char value[FLEETSING_OLED_VALUE_SIZE];
 
     fleetsing_render_top_padding(FLEETSING_OLED_MASTER_TOP_PAD);
-    fleetsing_render_pair("Layer", fleetsing_layer_name(fleetsing_display_remote_state.layer));
+    fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, value, sizeof(value));
+    fleetsing_render_pair("OS", value);
+
     fleetsing_format_locked_layers_state(fleetsing_display_remote_state.locked_layers_mask, value, sizeof(value));
     fleetsing_render_pair("Lock", value);
-    fleetsing_format_pointer_mode_state(fleetsing_display_remote_state.pointer_flags, value, sizeof(value));
-    fleetsing_render_pair("Ptr", value);
-    snprintf(value, sizeof(value), "%u", fleetsing_display_remote_state.dpi);
-    fleetsing_render_pair("DPI", value);
+
+    fleetsing_format_oneshot_mods_state(fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, value, sizeof(value));
+    fleetsing_render_pair("OSM", value);
+
+    fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, value, sizeof(value));
+    fleetsing_render_pair("Host", value);
 #endif
 }
 
@@ -1000,55 +795,81 @@ static void fleetsing_render_numword_panel(void) {
     fleetsing_render_pair("Lock", "NUM");
 }
 
-/*
- * Overlays are intentionally simple and live on the physical right side so the
- * left-side dashboard can keep its stable layer-oriented overview. When several
- * related states change together, bundle them into the same short-lived page.
- */
-static void fleetsing_render_overlay(void) {
-    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
-    fleetsing_render_line("Changed");
-    fleetsing_render_line("");
-
-    for (uint8_t i = 0; i < fleetsing_oled_overlay_state.count; ++i) {
-        fleetsing_render_pair(fleetsing_oled_overlay_state.items[i].title, fleetsing_oled_overlay_state.items[i].value);
-    }
-}
-
-static void fleetsing_render_overlay_remote(void) {
-#ifdef SPLIT_TRANSACTION_IDS_USER
-    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
-    fleetsing_render_line("Changed");
-    fleetsing_render_line("");
-
-    for (uint8_t i = 0; i < fleetsing_display_remote_state.overlay_count; ++i) {
-        fleetsing_render_pair(fleetsing_display_remote_state.overlay_items[i].title, fleetsing_display_remote_state.overlay_items[i].value);
-    }
-#endif
-}
-
-/*
- * The physical right half is the lower-noise secondary panel.
- *
- * It intentionally omits the current layer and instead focuses on slower or
- * more situational state: OS mode, macro status, and host LEDs.
- *
- * By convention, temporary or mode-specific detail pages should prefer this
- * side so the left half keeps its stable layer-oriented overview.
- */
-static void fleetsing_render_offhand_panel(void) {
+static void fleetsing_render_layer_reference_panel(uint8_t layer, uint16_t auto_mouse_remaining) {
     char value[FLEETSING_OLED_VALUE_SIZE];
 
-    /*
-     * Right side is the lower-churn status panel.
-     *
-     * Priority order on the right side:
-     * 1. dedicated temporary macro page
-     * 2. pointer page while the pointer layer is active
-     * 3. NumWord countdown on the physical right half while the layer is active
-     * 4. warning-first status page for unusual conditions
-     * 5. normal low-churn status page
-     */
+    fleetsing_render_top_padding(FLEETSING_OLED_TEMP_TOP_PAD);
+
+    switch (layer) {
+        case LAYER_NUMBERS:
+            fleetsing_render_pair("Numbers", "RIGHT");
+            fleetsing_render_pair("Digits", "789 456 123");
+            fleetsing_render_pair("Mods", "S A C G");
+            fleetsing_render_pair("Lock", "LLCK");
+            break;
+        case LAYER_NAVIGATION:
+            fleetsing_render_pair("Nav", "RIGHT");
+            fleetsing_render_pair("Move", "H J K L");
+            fleetsing_render_pair("Edges", "Home Ins End");
+            fleetsing_render_pair("Scroll", "BALL");
+            break;
+        case LAYER_FUNCTION:
+            fleetsing_render_pair("Function", "F KEYS");
+            fleetsing_render_pair("Left", "F17-F24");
+            fleetsing_render_pair("Right", "F1-F12");
+            fleetsing_render_pair("System", "PrSc ScrL");
+            break;
+        case LAYER_SYMBOLS:
+            fleetsing_render_pair("Symbols", "CODING");
+            fleetsing_render_pair("Top", "[ { ( < =");
+            fleetsing_render_pair("Mid", "! @ # $ %");
+            fleetsing_render_pair("Low", "' \" ` ~ \\");
+            break;
+        case LAYER_MEDIA:
+            fleetsing_render_pair("Media", "SYSTEM");
+            fleetsing_render_pair("Track", "Prev Play");
+            fleetsing_render_pair("Volume", "Down Mute Up");
+            fleetsing_render_pair("OS", "Mac / PC");
+            break;
+        case LAYER_MACRO:
+            fleetsing_render_pair("Macro", "DYNAMIC");
+            fleetsing_render_pair("Record", "REC1 REC2");
+            fleetsing_render_pair("Play", "PLY1 PLY2");
+            fleetsing_render_pair("Stop", "RSTP");
+            break;
+        case LAYER_AUTOMOUSE:
+            fleetsing_render_pair("AutoMouse", "ON");
+            fleetsing_render_pair("Dot", "RIGHT");
+            fleetsing_render_pair("Comma", "LEFT");
+            fleetsing_format_auto_mouse_remaining(auto_mouse_remaining, value, sizeof(value));
+            fleetsing_render_pair("Exit In", value);
+            fleetsing_format_auto_mouse_progress(auto_mouse_remaining, value, sizeof(value));
+            oled_write_ln(value, false);
+            break;
+        case LAYER_SCROLL_LEFT:
+        case LAYER_SCROLL_RIGHT:
+            fleetsing_render_pair("Scroll", "BALL");
+            fleetsing_render_pair("Drag", "ON");
+            fleetsing_render_pair("DPI", "LOW");
+            fleetsing_render_pair("Exit", "RELEASE");
+            break;
+        case LAYER_BASE:
+        default:
+            fleetsing_render_pair("Base", "READY");
+            fleetsing_render_pair("AutoMouse", "BALL");
+            fleetsing_render_pair("Clicks", ". / ,");
+            fleetsing_render_pair("Status", "LEFT");
+            break;
+    }
+}
+
+/*
+ * The physical right half is the layer-specific detail panel.
+ *
+ * It follows the highest active layer and stays there for as long as that layer
+ * is active. Macro and NumWord keep their richer modal pages.
+ */
+static void fleetsing_render_offhand_panel(void) {
     if (fleetsing_macro_page_is_active()) {
         fleetsing_render_macro_panel();
         return;
@@ -1064,31 +885,11 @@ static void fleetsing_render_offhand_panel(void) {
         return;
     }
 
-    fleetsing_render_top_padding(FLEETSING_OLED_OFFHAND_TOP_PAD);
-
-    if (fleetsing_format_alert(value, sizeof(value))) {
-        fleetsing_render_pair("Alert", value);
-        fleetsing_format_os_mode(value, sizeof(value));
-        fleetsing_render_pair("OS", value);
-        fleetsing_format_host_leds(value, sizeof(value));
-        fleetsing_render_pair("Host", value);
-        return;
-    }
-
-    fleetsing_format_os_mode(value, sizeof(value));
-    fleetsing_render_pair("OS", value);
-
-    fleetsing_format_macro_status(value, sizeof(value));
-    fleetsing_render_pair("Macro", value);
-
-    fleetsing_format_host_leds(value, sizeof(value));
-    fleetsing_render_pair("Host", value);
+    fleetsing_render_layer_reference_panel(get_highest_layer(layer_state), fleetsing_auto_mouse_display_remaining());
 }
 
 static void fleetsing_render_right_panel_remote(void) {
 #ifdef SPLIT_TRANSACTION_IDS_USER
-    char value[FLEETSING_OLED_VALUE_SIZE];
-
     if ((fleetsing_macro_page_is_active() || fleetsing_display_remote_state.macro_status != FLEETSING_MACRO_IDLE)) {
         fleetsing_render_macro_panel_remote();
         return;
@@ -1104,23 +905,7 @@ static void fleetsing_render_right_panel_remote(void) {
         return;
     }
 
-    fleetsing_render_top_padding(FLEETSING_OLED_OFFHAND_TOP_PAD);
-
-    if (fleetsing_format_alert_state(fleetsing_display_remote_state.locked_layers_mask, fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, fleetsing_display_remote_state.host_leds, value, sizeof(value))) {
-        fleetsing_render_pair("Alert", value);
-        fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, value, sizeof(value));
-        fleetsing_render_pair("OS", value);
-        fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, value, sizeof(value));
-        fleetsing_render_pair("Host", value);
-        return;
-    }
-
-    fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, value, sizeof(value));
-    fleetsing_render_pair("OS", value);
-    fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, value, sizeof(value));
-    fleetsing_render_pair("Macro", value);
-    fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, value, sizeof(value));
-    fleetsing_render_pair("Host", value);
+    fleetsing_render_layer_reference_panel(fleetsing_display_remote_state.layer, fleetsing_display_remote_state.auto_mouse_remaining);
 #endif
 }
 
@@ -1131,25 +916,16 @@ static uint8_t fleetsing_host_led_state_bits(void) {
 }
 
 static void fleetsing_fill_display_sync_state(fleetsing_display_sync_t *state) {
-    state->layer               = get_highest_layer(layer_state);
-    state->locked_layers_mask  = fleetsing_locked_layers_mask();
-    state->pointer_flags       = fleetsing_pointer_flags_state();
-    state->dpi                 = fleetsing_get_active_pointer_dpi();
-    state->os_mode             = (uint8_t)fleetsing_get_os_mode();
-    state->macro_status        = (uint8_t)fleetsing_macro_status;
-    state->host_leds           = fleetsing_host_led_state_bits();
-    state->oneshot_mods        = get_oneshot_mods();
-    state->oneshot_locked_mods = get_oneshot_locked_mods();
-    state->overlay_active      = fleetsing_local_overlay_is_active();
-    state->overlay_count       = fleetsing_oled_overlay_state.count;
-
-    for (uint8_t i = 0; i < FLEETSING_OLED_OVERLAY_MAX_ITEMS; ++i) {
-        if (i < fleetsing_oled_overlay_state.count) {
-            memcpy(&state->overlay_items[i], &fleetsing_oled_overlay_state.items[i], sizeof(state->overlay_items[i]));
-        } else {
-            memset(&state->overlay_items[i], 0, sizeof(state->overlay_items[i]));
-        }
-    }
+    state->layer                = get_highest_layer(layer_state);
+    state->locked_layers_mask   = fleetsing_locked_layers_mask();
+    state->pointer_flags        = fleetsing_pointer_flags_state();
+    state->dpi                  = fleetsing_get_active_pointer_dpi();
+    state->auto_mouse_remaining = fleetsing_auto_mouse_display_remaining();
+    state->os_mode              = (uint8_t)fleetsing_get_os_mode();
+    state->macro_status         = (uint8_t)fleetsing_macro_status;
+    state->host_leds            = fleetsing_host_led_state_bits();
+    state->oneshot_mods         = get_oneshot_mods();
+    state->oneshot_locked_mods  = get_oneshot_locked_mods();
 }
 
 static void fleetsing_display_sync_handler(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
@@ -1250,8 +1026,6 @@ bool oled_task_user(void) {
     char snapshot[FLEETSING_OLED_SNAPSHOT_SIZE];
     bool left_half = is_keyboard_left();
 
-    fleetsing_update_oled_overlay();
-
     if (is_keyboard_master()) {
         /*
          * Use the userspace-owned key-activity timer for OLED sleep/wake so
@@ -1276,29 +1050,6 @@ bool oled_task_user(void) {
         return false;
     }
 
-    if (!left_half && fleetsing_overlay_is_active()) {
-        size_t  offset = snprintf(snapshot, sizeof(snapshot), "X");
-        uint8_t count  = is_keyboard_master() ? fleetsing_oled_overlay_state.count : fleetsing_display_remote_state.overlay_count;
-
-        for (uint8_t i = 0; i < count && offset < sizeof(snapshot); ++i) {
-            const fleetsing_oled_overlay_item_t *item = is_keyboard_master() ? &fleetsing_oled_overlay_state.items[i] : &fleetsing_display_remote_state.overlay_items[i];
-            offset += snprintf(snapshot + offset, sizeof(snapshot) - offset, "|%s|%s", item->title, item->value);
-        }
-
-        if (!fleetsing_update_oled_snapshot(snapshot)) {
-            return false;
-        }
-
-        oled_clear();
-        oled_set_cursor(0, 0);
-        if (is_keyboard_master()) {
-            fleetsing_render_overlay();
-        } else {
-            fleetsing_render_overlay_remote();
-        }
-        return false;
-    }
-
     if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
         char field_a[FLEETSING_OLED_VALUE_SIZE];
         fleetsing_format_numword_remaining(field_a, sizeof(field_a));
@@ -1315,18 +1066,20 @@ bool oled_task_user(void) {
         char field_a[FLEETSING_OLED_VALUE_SIZE];
         char field_b[FLEETSING_OLED_VALUE_SIZE];
         char field_c[FLEETSING_OLED_VALUE_SIZE];
+        char field_d[FLEETSING_OLED_VALUE_SIZE];
 
         if (is_keyboard_master()) {
-            fleetsing_format_locked_layers(field_a, sizeof(field_a));
-            fleetsing_format_pointer_mode(field_b, sizeof(field_b));
-            snprintf(field_c, sizeof(field_c), "%u", fleetsing_get_active_pointer_dpi());
-            snprintf(snapshot, sizeof(snapshot), "L|%s|%s|%s|%s", fleetsing_layer_name(get_highest_layer(layer_state)), field_a, field_b, field_c);
+            fleetsing_format_os_mode(field_a, sizeof(field_a));
+            fleetsing_format_locked_layers(field_b, sizeof(field_b));
+            fleetsing_format_oneshot_mods(field_c, sizeof(field_c));
+            fleetsing_format_host_leds(field_d, sizeof(field_d));
         } else {
-            fleetsing_format_locked_layers_state(fleetsing_display_remote_state.locked_layers_mask, field_a, sizeof(field_a));
-            fleetsing_format_pointer_mode_state(fleetsing_display_remote_state.pointer_flags, field_b, sizeof(field_b));
-            snprintf(field_c, sizeof(field_c), "%u", fleetsing_display_remote_state.dpi);
-            snprintf(snapshot, sizeof(snapshot), "L|%s|%s|%s|%s", fleetsing_layer_name(fleetsing_display_remote_state.layer), field_a, field_b, field_c);
+            fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, field_a, sizeof(field_a));
+            fleetsing_format_locked_layers_state(fleetsing_display_remote_state.locked_layers_mask, field_b, sizeof(field_b));
+            fleetsing_format_oneshot_mods_state(fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, field_c, sizeof(field_c));
+            fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, field_d, sizeof(field_d));
         }
+        snprintf(snapshot, sizeof(snapshot), "L|%s|%s|%s|%s", field_a, field_b, field_c, field_d);
 
         if (!fleetsing_update_oled_snapshot(snapshot)) {
             return false;
@@ -1340,23 +1093,21 @@ bool oled_task_user(void) {
             fleetsing_render_left_panel_remote();
         }
     } else {
-        char alert[FLEETSING_OLED_VALUE_SIZE];
-        char os[FLEETSING_OLED_VALUE_SIZE];
+        char field_a[FLEETSING_OLED_VALUE_SIZE];
+        char field_b[FLEETSING_OLED_VALUE_SIZE];
         char field_c[FLEETSING_OLED_VALUE_SIZE];
-        char host[FLEETSING_OLED_VALUE_SIZE];
-        bool has_alert = is_keyboard_master() ? fleetsing_format_alert(alert, sizeof(alert)) : fleetsing_format_alert_state(fleetsing_display_remote_state.locked_layers_mask, fleetsing_display_remote_state.oneshot_mods, fleetsing_display_remote_state.oneshot_locked_mods, fleetsing_display_remote_state.host_leds, alert, sizeof(alert));
 
         if (fleetsing_macro_page_is_active()) {
             if (is_keyboard_master()) {
-                fleetsing_format_macro_status(alert, sizeof(alert));
-                fleetsing_format_macro_page_action(os, sizeof(os));
+                fleetsing_format_macro_status(field_a, sizeof(field_a));
+                fleetsing_format_macro_page_action(field_b, sizeof(field_b));
                 fleetsing_format_macro_page_slot(field_c, sizeof(field_c));
             } else {
-                fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, alert, sizeof(alert));
-                fleetsing_format_macro_page_action_state(fleetsing_display_remote_state.macro_status, os, sizeof(os));
+                fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, field_a, sizeof(field_a));
+                fleetsing_format_macro_page_action_state(fleetsing_display_remote_state.macro_status, field_b, sizeof(field_b));
                 fleetsing_format_macro_page_slot_state(fleetsing_display_remote_state.macro_status, field_c, sizeof(field_c));
             }
-            snprintf(snapshot, sizeof(snapshot), "R|M|%s|%s|%s", alert, os, field_c);
+            snprintf(snapshot, sizeof(snapshot), "R|M|%s|%s|%s", field_a, field_b, field_c);
         } else if (fleetsing_pointer_page_is_active()) {
             if (is_keyboard_master()) {
                 snprintf(snapshot, sizeof(snapshot), "R|P|%s|%s|%u", fleetsing_toggle_name(charybdis_get_pointer_sniping_enabled()), fleetsing_toggle_name(charybdis_get_pointer_dragscroll_enabled()), fleetsing_get_active_pointer_dpi());
@@ -1366,26 +1117,10 @@ bool oled_task_user(void) {
         } else if (fleetsing_numword_page_is_active() && fleetsing_numword_page_on_this_half()) {
             fleetsing_format_numword_remaining(field_c, sizeof(field_c));
             snprintf(snapshot, sizeof(snapshot), "R|W|%s", field_c);
-        } else if (has_alert) {
-            if (is_keyboard_master()) {
-                fleetsing_format_os_mode(field_c, sizeof(field_c));
-                fleetsing_format_host_leds(host, sizeof(host));
-            } else {
-                fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, field_c, sizeof(field_c));
-                fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, host, sizeof(host));
-            }
-            snprintf(snapshot, sizeof(snapshot), "R|A|%s|%s|%s", alert, field_c, host);
         } else {
-            if (is_keyboard_master()) {
-                fleetsing_format_os_mode(os, sizeof(os));
-                fleetsing_format_macro_status(field_c, sizeof(field_c));
-                fleetsing_format_host_leds(host, sizeof(host));
-            } else {
-                fleetsing_format_os_mode_state(fleetsing_display_remote_state.os_mode, os, sizeof(os));
-                fleetsing_format_macro_status_state(fleetsing_display_remote_state.macro_status, field_c, sizeof(field_c));
-                fleetsing_format_host_leds_state(fleetsing_display_remote_state.host_leds, host, sizeof(host));
-            }
-            snprintf(snapshot, sizeof(snapshot), "R|N|%s|%s|%s", os, field_c, host);
+            uint8_t  active_layer         = is_keyboard_master() ? get_highest_layer(layer_state) : fleetsing_display_remote_state.layer;
+            uint16_t auto_mouse_remaining = is_keyboard_master() ? fleetsing_auto_mouse_display_remaining() : fleetsing_display_remote_state.auto_mouse_remaining;
+            snprintf(snapshot, sizeof(snapshot), "R|L|%s|%u", fleetsing_layer_name(active_layer), auto_mouse_remaining);
         }
 
         if (!fleetsing_update_oled_snapshot(snapshot)) {

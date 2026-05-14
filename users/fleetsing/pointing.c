@@ -27,11 +27,20 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
     return mouse_report;
 }
 
+uint16_t fleetsing_auto_mouse_display_remaining(void) {
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    uint16_t remaining = get_auto_mouse_remaining();
+    return remaining == 0 ? 0 : (uint16_t)(((remaining + 99) / 100) * 100);
+#else
+    return 0;
+#endif
+}
+
 layer_state_t fleetsing_pointing_layer_state_set(layer_state_t state) {
 #ifdef POINTING_DEVICE_ENABLE
     bool sniping_was_enabled = charybdis_get_pointer_sniping_enabled();
     bool sniping_enabled     = layer_state_cmp(state, FLEETSING_AUTO_SNIPING_LAYER);
-    bool dragscroll_enabled  = layer_state_cmp(state, LAYER_SCROLL_LEFT) || layer_state_cmp(state, LAYER_SCROLL_RIGHT);
+    bool dragscroll_enabled  = layer_state_cmp(state, LAYER_NAVIGATION) || layer_state_cmp(state, LAYER_SCROLL_LEFT) || layer_state_cmp(state, LAYER_SCROLL_RIGHT);
 
     /*
      * Pointer-layer activation drives sniping mode, but the actual CPI change

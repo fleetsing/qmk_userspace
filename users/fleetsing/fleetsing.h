@@ -21,6 +21,7 @@ enum charybdis_keymap_layers {
     LAYER_MACRO,
     LAYER_SCROLL_LEFT,
     LAYER_SCROLL_RIGHT,
+    LAYER_AUTOMOUSE,
 };
 
 enum custom_keycodes {
@@ -123,6 +124,7 @@ bool          fleetsing_os_process_record(uint16_t keycode, keyrecord_t *record)
 bool          fleetsing_symbol_process_record(uint16_t keycode, keyrecord_t *record);
 bool          fleetsing_pointing_process_record(uint16_t keycode, keyrecord_t *record);
 layer_state_t fleetsing_pointing_layer_state_set(layer_state_t state);
+uint16_t      fleetsing_auto_mouse_display_remaining(void);
 bool          fleetsing_numword_process_record(uint16_t keycode, keyrecord_t *record);
 bool          fleetsing_numword_is_active(void);
 uint16_t      fleetsing_numword_idle_remaining(void);
