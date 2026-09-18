@@ -1,5 +1,15 @@
 #include "fleetsing.h"
-#include "layouts/charybdis_3x5/layout_positions.h"
+/*
+ * This file is compiled once per keymap that uses it, so it must include
+ * whichever positional-alias header that keymap's keymap.c uses. Keymaps
+ * opt into an alternate arrangement by defining its selector macro in
+ * config.h before this file is compiled.
+ */
+#ifdef FLEETSING_LAYOUT_QWERTY
+#    include "layouts/charybdis_3x5/layout_positions_qwerty.h"
+#else
+#    include "layouts/charybdis_3x5/layout_positions.h"
+#endif
 
 /*
  * Retro Shift resolves on release, so this state tracks a pending key long
@@ -35,8 +45,8 @@ static void fleetsing_autoshift_resolution_haptic(bool shifted, keyrecord_t *rec
     X(_L32)                                                \
     X(_R35)                                                \
     X(_R33)                                                \
-    X(_R31)                                                \
     X(_R32)                                                \
+    X(_FLEETSING_DOT_POS)                                  \
     X(_R22)                                                \
     X(_R23)                                                \
     X(_R24)                                                \
@@ -113,9 +123,9 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
             return shifted ? A(KC_BSLS) : A(FI_SECT);
         case S(A(FI_SECT)):
             return shifted ? A(FI_1) : S(A(FI_SECT));
-        case _R31:
+        case _FLEETSING_DOT_POS:
             return shifted ? FI_EXLM : FI_DOT;
-        case _R32:
+        case _FLEETSING_COMMA_POS:
             return shifted ? FI_QUES : FI_COMM;
         default:
             return (IS_RETRO(keycode)) ? keycode & 0xFF : keycode;
@@ -187,8 +197,8 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     fleetsing_autoshift_resolution_haptic(shifted, record);
 
     switch (keycode) {
-        case _R31:
-        case _R32:
+        case _FLEETSING_DOT_POS:
+        case _FLEETSING_COMMA_POS:
             register_code16(fleetsing_autoshift_output_keycode(keycode, shifted));
             break;
 #define FLEETSING_CASE(kc) case kc:
@@ -206,8 +216,8 @@ void autoshift_press_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
 
 void autoshift_release_user(uint16_t keycode, bool shifted, keyrecord_t *record) {
     switch (keycode) {
-        case _R31:
-        case _R32: {
+        case _FLEETSING_DOT_POS:
+        case _FLEETSING_COMMA_POS: {
             uint16_t output_keycode = fleetsing_autoshift_output_keycode(keycode, shifted);
 
             unregister_code16(output_keycode);

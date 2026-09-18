@@ -105,3 +105,15 @@
  * - L41 + R41 taps together for Caps Word on the Esc + Enter pair
  * - L41 + R41 holds promote to Macro through the Numbers + Media tri-layer
  */
+
+/*
+ * Indirection for the dot/comma custom Auto Shift symbol overrides.
+ *
+ * fi_autoshift.c gives dot and comma special shifted-symbol behavior
+ * (dot -> "!", comma -> "?") that belongs to those characters, not to a fixed
+ * physical position. Each layout_positions*.h variant points these at
+ * whichever position currently holds dot and comma, so fi_autoshift.c never
+ * has to hardcode a position.
+ */
+#define _FLEETSING_DOT_POS   _R31
+#define _FLEETSING_COMMA_POS _R32
