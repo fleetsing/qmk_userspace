@@ -218,14 +218,17 @@
  *
  * Trackball movement can temporarily expose one-handed right-side pointer
  * controls without entering the deliberate pointer/sniping layer:
- * - N = right click
  * - M = left click
- * - comma = drag-scroll hold
+ * - comma = right click
+ * - dot = drag-scroll hold
+ *
+ * N stays a plain letter: it often starts a word typed right after clicking
+ * into a field, while comma and dot rarely do.
  */
 #define LAYOUT_LAYER_AUTOMOUSE                                                                                                          \
     _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
     _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
-    _______,    _______,    _______,    _______,    _______,            MS_BTN2,    MS_BTN1,    DRGSCRL,    _______,    _______,        \
+    _______,    _______,    _______,    _______,    _______,            _______,    MS_BTN1,    MS_BTN2,    DRGSCRL,    _______,        \
                             _______,    _______,    _______,            _______,    _______,    _______
 
 /* Wrap the board's LAYOUT macro so layer macros stay visually grouped. */

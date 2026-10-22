@@ -839,8 +839,8 @@ static void fleetsing_render_layer_reference_panel(uint8_t layer, uint16_t auto_
             break;
         case LAYER_AUTOMOUSE:
             fleetsing_render_pair("AutoMouse", "ON");
-            fleetsing_render_pair("Dot", "RIGHT");
-            fleetsing_render_pair("Comma", "LEFT");
+            fleetsing_render_pair("M", "LEFT");
+            fleetsing_render_pair("Comma", "RIGHT");
             fleetsing_format_auto_mouse_remaining(auto_mouse_remaining, value, sizeof(value));
             fleetsing_render_pair("Exit In", value);
             fleetsing_format_auto_mouse_progress(auto_mouse_remaining, value, sizeof(value));
@@ -857,7 +857,7 @@ static void fleetsing_render_layer_reference_panel(uint8_t layer, uint16_t auto_
         default:
             fleetsing_render_pair("Base", "READY");
             fleetsing_render_pair("AutoMouse", "BALL");
-            fleetsing_render_pair("Clicks", ". / ,");
+            fleetsing_render_pair("Clicks", "M / ,");
             fleetsing_render_pair("Status", "LEFT");
             break;
     }
