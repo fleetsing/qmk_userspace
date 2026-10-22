@@ -83,9 +83,10 @@ static bool fleetsing_is_custom_retro_autoshift_position(uint16_t keycode) {
  * working grave-key behavior (`FI_SECT` / `S(FI_SECT)`), while PC mode uses
  * the Finnish angle-bracket keycodes instead.
  *
- * The right-hand H+N combo (`A(FI_DIAE)`) is intentionally remapped away from
- * its raw layout meaning so the combo can serve as a quick pipe/tilde key:
- * tap for `|`, hold for `~`, with OS-specific Finnish-on-macOS routing here.
+ * The right inner-column top combo (`A(FI_DIAE)`) is intentionally remapped
+ * away from its raw layout meaning so the combo can serve as a quick
+ * pipe/tilde key: tap for `|`, hold for `~`, with OS-specific
+ * Finnish-on-macOS routing here.
  */
 static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifted) {
     switch (keycode) {
@@ -108,7 +109,7 @@ static uint16_t fleetsing_autoshift_output_keycode(uint16_t keycode, bool shifte
         case S(FI_6):
             return shifted ? FI_HASH : S(FI_6);
         case A(FI_DIAE):
-            return shifted ? fleetsing_os_keycode(A(FI_7), FI_PIPE) : fleetsing_os_keycode(A(FI_DIAE), FI_TILD);
+            return shifted ? fleetsing_os_keycode(A(FI_DIAE), FI_TILD) : fleetsing_os_keycode(A(FI_7), FI_PIPE);
         case S(FI_8):
             return shifted ? fleetsing_os_keycode(S(A(FI_8)), FI_LCBR) : S(FI_8);
         case A(FI_8):

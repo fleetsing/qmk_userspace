@@ -123,22 +123,29 @@ combo_t key_combos[] = {
 
     [R41_R43] = COMBO(R41_R43_COMBO, QK_AREP),
 
-    [L11_L21] = COMBO(L11_L21_COMBO, S(FI_4)),
-    [L21_L31] = COMBO(L21_L31_COMBO, A(FI_2)),
-    [L12_L22] = COMBO(L12_L22_COMBO, FI_COLN),
-    [L22_L32] = COMBO(L22_L32_COMBO, FI_QUOT),
-    [L13_L23] = COMBO(L13_L23_COMBO, FI_PLUS),
-    [L23_L33] = COMBO(L23_L33_COMBO, FI_MINS),
-    [L14_L24] = COMBO(L14_L24_COMBO, S(FI_QUOT)),
-    [L24_L34] = COMBO(L24_L34_COMBO, S(FI_7)),
+    /*
+     * Symbol chords. Bracket pairs are split across hands: openers on the
+     * left middle finger, closers on the right middle finger. The rest of the
+     * left hand holds arithmetic operators so NumWord can reach them while the
+     * right hand is on the digits; the right index finger holds quoting and
+     * colon punctuation. Trailing comments are tap, then Auto Shift hold.
+     */
+    [L11_L21] = COMBO(L11_L21_COMBO, A(FI_2)),        // @, ^
+    [L21_L31] = COMBO(L21_L31_COMBO, S(FI_4)),        // euro, $
+    [L12_L22] = COMBO(L12_L22_COMBO, FI_MINS),        // -, _
+    [L22_L32] = COMBO(L22_L32_COMBO, FI_PLUS),        // +, =
+    [L13_L23] = COMBO(L13_L23_COMBO, S(FI_8)),        // (, {
+    [L23_L33] = COMBO(L23_L33_COMBO, A(FI_8)),        // [, <
+    [L14_L24] = COMBO(L14_L24_COMBO, S(FI_7)),        // slash, backslash
+    [L24_L34] = COMBO(L24_L34_COMBO, S(FI_QUOT)),     // *, %
 
-    [R11_R21] = COMBO(R11_R21_COMBO, S(FI_6)),
-    [R21_R31] = COMBO(R21_R31_COMBO, A(FI_DIAE)),
-    [R12_R22] = COMBO(R12_R22_COMBO, S(FI_8)),
-    [R22_R32] = COMBO(R22_R32_COMBO, A(FI_8)),
-    [R13_R23] = COMBO(R13_R23_COMBO, S(FI_9)),
-    [R23_R33] = COMBO(R23_R33_COMBO, A(FI_9)),
-    [R14_R24] = COMBO(R14_R24_COMBO, FI_GRV),
+    [R11_R21] = COMBO(R11_R21_COMBO, A(FI_DIAE)),     // |, ~
+    [R21_R31] = COMBO(R21_R31_COMBO, FI_GRV),         // `, Option-5 on macOS
+    [R12_R22] = COMBO(R12_R22_COMBO, FI_QUOT),        // ', "
+    [R22_R32] = COMBO(R22_R32_COMBO, FI_COLN),        // :, ;
+    [R13_R23] = COMBO(R13_R23_COMBO, S(FI_9)),        // ), }
+    [R23_R33] = COMBO(R23_R33_COMBO, A(FI_9)),        // ], >
+    [R14_R24] = COMBO(R14_R24_COMBO, S(FI_6)),        // &, #
     [R24_R34] = COMBO(R24_R34_COMBO, A(FI_SECT)),
     [R25_R35] = COMBO(R25_R35_COMBO, S(A(FI_SECT))),
 };
