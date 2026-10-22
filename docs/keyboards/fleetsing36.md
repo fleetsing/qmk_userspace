@@ -4,7 +4,7 @@
 userspace:
 
 - Keyboard: `bastardkb/charybdis/3x5/fleetsing36`
-- Keymap: `fleetsing`
+- Keymap: `fleetsing_qwerty`
 
 This page is the workspace-specific description for the board. It is the right
 place to grow more visual and personal over time with photos, build notes, and
@@ -49,9 +49,11 @@ themes:
 ## Layer Summary
 
 - Base: alpha layout plus home-row mods, thumb layer-taps, Hyper/Meh holds on
-  the top row, and the shared physical positions that combos build on. `Q` and
-  `Z` are swapped from the earlier base layout, and comma/dot are swapped
-  together with their Finnish Auto Shift outputs.
+  the top row, and the shared physical positions that combos build on. Letters
+  follow a QWERTY arrangement adapted to 3x5 (see
+  `users/fleetsing/layouts/charybdis_3x5/layout_positions_qwerty.h`). The
+  earlier custom layout is archived at the git tag
+  `archive/fleetsing-custom-layout`.
 - NumWord: temporary numeric burst layer entered by the `L43 + R43` thumb
   combo. It stays alive for digits, common numeric symbols, editing keys, and
   cursor movement so inline number editing does not immediately cancel it.
@@ -98,7 +100,7 @@ themes:
 
 The main implementation lives in:
 
-- `keyboards/bastardkb/charybdis/3x5/fleetsing36/keymaps/fleetsing/keymap.c`
+- `keyboards/bastardkb/charybdis/3x5/fleetsing36/keymaps/fleetsing_qwerty/keymap.c`
 - `users/fleetsing/fleetsing.c`
 - `users/fleetsing/pointing.c`
 - `users/fleetsing/layouts/charybdis_3x5/combos.def`
@@ -118,4 +120,4 @@ This page is intended to grow. Good future additions:
 
 Primary compile command:
 
-`qmk compile -kb bastardkb/charybdis/3x5/fleetsing36 -km fleetsing`
+`qmk compile -kb bastardkb/charybdis/3x5/fleetsing36 -km fleetsing_qwerty`

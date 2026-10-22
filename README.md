@@ -23,7 +23,8 @@ companion repositories are:
 This userspace currently centers on:
 
 - the active `bastardkb/charybdis/3x5/fleetsing36` keyboard target
-- the `fleetsing` keymap
+- the `fleetsing_qwerty` keymap (the earlier custom-layout `fleetsing` keymap
+  is archived at the git tag `archive/fleetsing-custom-layout`)
 - shared userspace modules under `users/fleetsing/`
 - layout-specific combo and Auto Shift logic under
   `users/fleetsing/layouts/charybdis_3x5/`
@@ -78,7 +79,7 @@ The rough split is:
 ## Active Build Target
 
 - Keyboard: `bastardkb/charybdis/3x5/fleetsing36`
-- Keymap: `fleetsing`
+- Keymap: `fleetsing_qwerty`
 
 Build targets are tracked in `qmk.json`, which is the source of truth for this
 userspace's active compile targets.
@@ -86,7 +87,7 @@ userspace's active compile targets.
 ## Key Paths
 
 - Keymap:
-  `keyboards/bastardkb/charybdis/3x5/fleetsing36/keymaps/fleetsing/`
+  `keyboards/bastardkb/charybdis/3x5/fleetsing36/keymaps/fleetsing_qwerty/`
 - Shared userspace:
   `users/fleetsing/`
 - Layout-specific helpers:
@@ -101,7 +102,7 @@ From the workspace root:
 - Health check:
   `qmk userspace-doctor`
 - Primary compile:
-  `qmk compile -kb bastardkb/charybdis/3x5/fleetsing36 -km fleetsing`
+  `qmk compile -kb bastardkb/charybdis/3x5/fleetsing36 -km fleetsing_qwerty`
 - Compile the configured userspace targets:
   `qmk userspace-compile -c -p`
 

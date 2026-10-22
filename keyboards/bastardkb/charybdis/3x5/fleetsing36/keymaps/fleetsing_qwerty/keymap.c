@@ -1,12 +1,14 @@
 /*
- * QWERTY test variant of the personal Charybdis 3x5 keymap.
+ * Personal Charybdis 3x5 keymap for English and Finnish, QWERTY base layout.
  *
- * Identical to the fleetsing keymap in every respect except the base letter
- * arrangement: it includes layout_positions_qwerty.h instead of
- * layout_positions.h. Every mod-tap, layer-tap, combo, and Auto Shift
- * behavior stays pinned to the same physical position; only the letters
- * printed at each position change. See layout_positions_qwerty.h for the
- * exact grid and the deliberate deviations from textbook QWERTY.
+ * The matrix assumes the host OS keyboard layout is Finnish. Base letters come
+ * from layout_positions_qwerty.h; every mod-tap, layer-tap, combo, and Auto
+ * Shift behavior is pinned to a physical position, not to a letter. See that
+ * header for the exact grid and the deliberate deviations from textbook QWERTY.
+ *
+ * The earlier custom-layout keymap that this one was derived from is archived
+ * at the userspace git tag `archive/fleetsing-custom-layout`; its positional
+ * aliases are still in layout_positions.h.
  */
 
 #include QMK_KEYBOARD_H
@@ -215,12 +217,10 @@
  * Auto Mouse layer.
  *
  * Trackball movement can temporarily expose one-handed right-side pointer
- * controls without entering the deliberate pointer/sniping layer. These stay
- * pinned to the same physical positions as the fleetsing keymap regardless of
- * which letter now sits there:
- * - inner right-row3 key (now N) = right click
- * - next right-row3 key (now M) = left click
- * - Meh-hold right-row3 key (now comma) = drag-scroll hold
+ * controls without entering the deliberate pointer/sniping layer:
+ * - N = right click
+ * - M = left click
+ * - comma = drag-scroll hold
  */
 #define LAYOUT_LAYER_AUTOMOUSE                                                                                                          \
     _______,    _______,    _______,    _______,    _______,            _______,    _______,    _______,    _______,    _______,        \
