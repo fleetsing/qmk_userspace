@@ -93,7 +93,7 @@
     _______,    _______,    _______,    _______,    _______,            _______,    FI_7,       FI_8,       FI_9,       _______,        \
     _______,    _______,    _______,    _______,    _______,            _______,    FI_4,       FI_5,       FI_6,       FI_0,           \
     _______,    _______,    _______,    _______,    _______,            _______,    FI_1,       FI_2,       FI_3,       _______,        \
-                            KC_SPC,     KC_BSPC,    NUMLOCK,            NUMLOCK,    KC_DEL,     KC_ENT
+                            _______,    _______,    NUMLOCK,            KC_ENT ,    XXXXXXX,    KC_BSPC
 
 /*
  * Number-entry layer.
@@ -107,7 +107,7 @@
     FI_DOT,     FI_COMM,    FI_MINS,    FI_PLUS,    FI_SLSH,            XXXXXXX,    FI_7,       FI_8,       FI_9,       XXXXXXX,        \
     KC_LSFT,    KC_RALT,    KC_LCTL,    KC_LGUI,    KC_DEL,             KC_BSPC,    FI_4,       FI_5,       FI_6,       FI_0,           \
     FI_PERC,    FI_LPRN,    KC_MEH,     KC_HYPR,    FI_RPRN,            XXXXXXX,    FI_1,       FI_2,       FI_3,       XXXXXXX,        \
-                            KC_SPC,     XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
+                            KC_SPC,     XXXXXXX,    QK_LLCK,            KC_ENT,     XXXXXXX,    KC_BSPC
 
 /*
  * Navigation layer.
@@ -123,7 +123,7 @@
     XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,    XXXXXXX,            XXXXXXX,    KC_PGDN,    KC_PGUP,    XXXXXXX,    XXXXXXX,        \
     _OSM_LSFT,  _OSM_LALT,  _OSM_LCTL,  _OSM_LGUI,  KC_DEL,             KC_LEFT,    KC_DOWN,    KC_UP,      KC_RGHT,    XXXXXXX,              \
     XXXXXXX,    XXXXXXX,    _OSM_MEH,   _OSM_HYPR,  XXXXXXX,            XXXXXXX,    KC_HOME,    KC_INS,     KC_END,     XXXXXXX,        \
-                            _______,    XXXXXXX,    QK_LLCK,            QK_LLCK,    KC_ENT,     XXXXXXX
+                            XXXXXXX,    XXXXXXX,    XXXXXXX,            S(KC_ENT),  XXXXXXX,    KC_DEL
 
 /*
  * Function-key layer.
